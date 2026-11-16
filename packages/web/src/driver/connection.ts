@@ -1,3 +1,5 @@
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 /** A thin WebDriver BiDi client: typed commands and events over one message transport. */
 
 import type { Commands, Event as BidiEvent, Message } from 'webdriver-bidi-protocol';
@@ -58,7 +60,9 @@ export class BidiConnection {
     return new Promise<BidiResult<M>>((resolve, reject) => {
       this.pending.set(id, { method, resolve: resolve as (result: unknown) => void, reject });
       try {
-        this.transport.send(JSON.stringify({ id, method, params }));
+        const out = JSON.stringify({ id, method, params });
+        if (process.env['ZZ_BIDI_LOG']) require('node:fs').appendFileSync(`${process.env['ZZ_BIDI_LOG']}-${process.pid}.log`, `${Date.now()} > ${out.slice(0, 300)}\n`);
+        this.transport.send(out);
       } catch (cause) {
         this.pending.delete(id);
         reject(cause instanceof Error ? cause : new Error(String(cause)));
@@ -112,6 +116,7 @@ export class BidiConnection {
   /** Settles the command a response answers, or hands an event to its listeners. */
   private receive(raw: string): void {
     // oxlint-disable-next-line e2e/no-unchecked-json -- protocol messages from the browser the engine launched
+    if (process.env['ZZ_BIDI_LOG'] && !raw.includes('"log.entryAdded"')) require('node:fs').appendFileSync(`${process.env['ZZ_BIDI_LOG']}-${process.pid}.log`, `${Date.now()} < ${raw.slice(0, 300)}\n`);
     const message = JSON.parse(raw) as Message;
     if (message.type === 'event') {
       for (const listener of this.listeners.get(message.method) ?? []) listener(message.params);
