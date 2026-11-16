@@ -917,6 +917,8 @@ export class ListReporter implements Reporter {
           ? pc.yellow(F_POINTER)
           : outcome === 'skipped'
             ? pc.dim(pc.gray(F_DOWN))
+            : outcome === 'todo'
+              ? pc.dim('○')
             : pc.green(F_CHECK);
     const state = [
       pc.dim(`${counts.total} test${counts.total === 1 ? '' : 's'}`),
@@ -924,6 +926,7 @@ export class ListReporter implements Reporter {
       counts.interrupted > 0 ? pc.yellow(`${counts.interrupted} interrupted`) : undefined,
       counts.flaky > 0 ? pc.yellow(`${counts.flaky} flaky`) : undefined,
       counts.skipped > 0 ? pc.yellow(`${counts.skipped} skipped`) : undefined,
+      counts.todo > 0 ? pc.dim(`${counts.todo} todo`) : undefined,
     ]
       .filter((part) => part !== undefined)
       .join(pc.dim(' | '));
@@ -933,7 +936,7 @@ export class ListReporter implements Reporter {
       ` ${symbol} ${this.badge(group.target)} ${bounded(group.file)}`,
       `${pc.dim('(')}${state}${pc.dim(')')}`,
     ];
-    // A file whose tests all skipped never ran; `0ms` would only invite a question.
+    // A file whose tests all skipped or are todo never ran; `0ms` would only invite a question.
     if (durationMs > 0) parts.push(pc.dim(formatTime(durationMs)));
     if (ai !== undefined) parts.push(pc.dim(ai));
     this.print(parts.join(' '));
@@ -985,6 +988,8 @@ export class ListReporter implements Reporter {
             : pc.dim(pc.gray(` [${line.skipReason}]`));
         return [`   ${pc.dim(pc.gray(F_DOWN))} ${title}${reason}`];
       }
+      case 'todo':
+        return [`   ${pc.dim('○')} ${title} ${pc.dim('(todo)')}`];
       case 'interrupted':
         return [`   ${pc.yellow(F_CROSS)} ${title} ${pc.yellow('(interrupted)')} ${duration}${ai}`];
       default: {

@@ -155,8 +155,10 @@ describe('registration', () => {
       test.skip('skipped', noop);
       test.only('focused', noop);
       test('opt-skip', { skip: 'flaky upstream' }, noop);
+      test.describe('checkout', () => test.todo('add checkout coverage'));
     });
-    expect(registration.tests.map((item) => item.mode)).toEqual(['skip', 'only', 'skip']);
+    expect(registration.tests.map((item) => item.mode)).toEqual(['skip', 'only', 'skip', 'todo']);
+    expect(registration.tests[3]!.titlePath).toEqual(['checkout', 'add checkout coverage']);
     expect(registration.tests[2]!.options.skip).toBe('flaky upstream');
   });
 

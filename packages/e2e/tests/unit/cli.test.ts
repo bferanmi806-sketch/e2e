@@ -545,6 +545,14 @@ describe('e2e list', () => {
       reason: 'title does not match --grep',
     }),
   ];
+  const todoPair = listed({
+    file: 'tests/a.e2e.ts',
+    title: 'add checkout coverage',
+    titlePath: ['checkout', 'add checkout coverage'],
+    tags: [],
+    target: 'web',
+    disposition: 'todo',
+  });
 
   function lastListOptions(): ListOptions {
     expect(listMock).toHaveBeenCalledTimes(1);
@@ -552,7 +560,7 @@ describe('e2e list', () => {
   }
 
   it('prints one line per pair and exits 0 without running', async () => {
-    listMock.mockResolvedValue({ pairs });
+    listMock.mockResolvedValue({ pairs: [pairs[0]!, pairs[1]!, todoPair, pairs[2]!, pairs[3]!] });
     await invoke('list');
     expect(runMock).not.toHaveBeenCalled();
     expect(process.exitCode).toBe(0);
@@ -560,6 +568,7 @@ describe('e2e list', () => {
       [
         'tests/a.e2e.ts › signs in [web] #smoke #auth',
         'tests/a.e2e.ts › billing › pays [web] #billing (skipped: not today)',
+        'tests/a.e2e.ts › checkout › add checkout coverage [web] (todo)',
         'tests/b.e2e.ts › browses [webkit]',
         '',
       ].join('\n'),
@@ -578,10 +587,10 @@ describe('e2e list', () => {
   });
 
   it('prints { pairs } with --reporter json', async () => {
-    listMock.mockResolvedValue({ pairs });
+    listMock.mockResolvedValue({ pairs: [...pairs, todoPair] });
     await invoke('list', '--reporter', 'json');
     expect(process.exitCode).toBe(0);
-    const printed = { pairs: pairs.filter((pair) => pair.disposition !== 'filtered') };
+    const printed = { pairs: [...pairs, todoPair].filter((pair) => pair.disposition !== 'filtered') };
     expect(JSON.parse(written(stdoutSpy))).toEqual(JSON.parse(JSON.stringify(printed)));
     expect(written(stdoutSpy)).not.toContain('skipReason');
   });

@@ -604,6 +604,9 @@ void test.skipIf(isFeatureOn());
 void test.runIf(Promise.resolve(true));
 // @ts-expect-error a union with a Promise could still be a Promise
 void test.runIf(isFeatureOn() as Promise<boolean> | boolean);
+test.todo('add checkout coverage') satisfies ReturnType<typeof test>;
+// @ts-expect-error a todo registers a title only; it cannot receive a body
+test.todo('add checkout coverage', async () => {});
 // fail takes the same three shapes and returns nothing inside a body; describe and setup take no fail option.
 test.fail(true, 'known gap');
 test.fail('known gap');

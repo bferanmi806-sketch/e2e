@@ -321,7 +321,7 @@ describe('telemetry events', () => {
       ],
       // Member 1 never started; member 2 ran and skipped itself.
       serialGroups: [{ ...serial, attempts: [{ ...serial.attempts[0]!, members: [member(0, 'passed', [replayed]), member(1, 'skipped', []), member(2, 'skipped', [reportStep()], true)] }] }],
-      summary: { discovered: 9, selected: 8, executed: 8, passed: 7, failed: 0, interrupted: 0, flaky: 0, skipped: 1 },
+      summary: { discovered: 9, selected: 8, executed: 8, passed: 7, failed: 0, interrupted: 0, flaky: 0, skipped: 1, todo: 0 },
     });
     const { properties } = runCompletedEvent(report, RUN);
     const tiers = ['tests_code_only', 'tests_replayed', 'tests_assisted', 'tests_live'].map((key) => properties[key] as number);

@@ -35,7 +35,7 @@ export interface GroupNode {
   readonly serial: boolean;
 }
 
-export type TestMode = 'normal' | 'skip' | 'only';
+export type TestMode = 'normal' | 'skip' | 'todo' | 'only';
 
 /**
  * A registered test or hook body. `TestAPI` types what each receives; at run
@@ -750,6 +750,19 @@ function createTestAPI(chain: readonly FixtureDefinition[]): TestAPI {
       }
       skipRunningTest(call.condition, call.reason);
       return undefined;
+    },
+    todo(title: string): TestCase {
+      return requireCollector('test.todo()').registerTest(
+        'test',
+        'todo',
+        title,
+        {},
+        [],
+        () => {
+          throw new CollectionError('test.todo() must never be scheduled for execution');
+        },
+        chain,
+      );
     },
     fail(first?: string | boolean, second?: TestBody | string): TestCase | undefined {
       const call = parseModifierCall(first, second);

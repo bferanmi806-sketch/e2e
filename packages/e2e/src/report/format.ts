@@ -138,11 +138,12 @@ export interface Counters {
   interrupted: number;
   flaky: number;
   skipped: number;
+  todo: number;
   total: number;
 }
 
 export function emptyCounters(): Counters {
-  return { passed: 0, failed: 0, interrupted: 0, flaky: 0, skipped: 0, total: 0 };
+  return { passed: 0, failed: 0, interrupted: 0, flaky: 0, skipped: 0, todo: 0, total: 0 };
 }
 
 /**
@@ -150,7 +151,7 @@ export function emptyCounters(): Counters {
  * interrupted test was stopped by the run, not by its own verdict, so it
  * counts on its own.
  */
-export function statusBucket(status: ResultStatus): 'passed' | 'failed' | 'interrupted' | 'flaky' | 'skipped' {
+export function statusBucket(status: ResultStatus): 'passed' | 'failed' | 'interrupted' | 'flaky' | 'skipped' | 'todo' {
   return status === 'timed-out' ? 'failed' : status;
 }
 
@@ -162,6 +163,7 @@ export const STATUS_WORD: Record<ResultStatus, string> = {
   'timed-out': 'timed out',
   interrupted: 'interrupted',
   skipped: 'skipped',
+  todo: 'todo',
 };
 
 /** Counts results by bucket; `total` is the number of items. */
@@ -174,11 +176,13 @@ export function tally(items: readonly { readonly status: ResultStatus }[]): Coun
   return counters;
 }
 
-/** A file's outcome from its tests: failed if any did, else interrupted if any was, skipped if all were, else passed. */
-export function fileOutcome(counters: Counters): 'passed' | 'failed' | 'interrupted' | 'skipped' {
+/** A file's outcome from its tests: failures first, then interrupted, then all-unrun skips or todos, else passed. */
+export function fileOutcome(counters: Counters): 'passed' | 'failed' | 'interrupted' | 'skipped' | 'todo' {
   if (counters.failed > 0) return 'failed';
   if (counters.interrupted > 0) return 'interrupted';
-  if (counters.total > 0 && counters.skipped === counters.total) return 'skipped';
+  if (counters.total > 0 && counters.passed + counters.failed + counters.interrupted + counters.flaky === 0) {
+    return counters.todo > 0 ? 'todo' : 'skipped';
+  }
   return 'passed';
 }
 
@@ -190,6 +194,7 @@ export function stateString(pc: Colors, counters: Counters): string {
     pc.bold(pc.green(`${counters.passed} passed`)),
     counters.flaky > 0 ? pc.yellow(`${counters.flaky} flaky`) : undefined,
     counters.skipped > 0 ? pc.gray(`${counters.skipped} skipped`) : undefined,
+    counters.todo > 0 ? pc.dim(`${counters.todo} todo`) : undefined,
   ].filter((part) => part !== undefined);
   return `${parts.join(pc.dim(' | '))}${pc.gray(` (${counters.total})`)}`;
 }
