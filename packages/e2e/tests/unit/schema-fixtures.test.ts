@@ -58,7 +58,8 @@ describe.each(schemas)('%s schema', (name) => {
       report.run.summary['todo'] = 1;
       expect(validate(report)).toBe(true);
 
-      result['attempts'] = [report.run.results[1]!['attempts'] as Record<string, unknown>[][number]];
+      const attempt = (report.run.results[1]!['attempts'] as Record<string, unknown>[])[0]!;
+      result['attempts'] = [attempt];
       expect(validate(report)).toBe(false);
       result['attempts'] = [];
       result['selected'] = false;

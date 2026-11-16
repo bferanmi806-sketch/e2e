@@ -75,6 +75,8 @@ npx e2e run 'tests/**/*.smoke.e2e.ts' --target chromium --workers 1 --retries 0
 CI=1 npx e2e run            # the CI defaults, locally
 ```
 
+An all-TODO `e2e run` makes no attempts and exits 0.
+
 `list` takes the same files and selection flags (`--config`, `--target`,
 `--tag`, `--tag-mode`, `--exclude-tag`, `--grep`, `--grep-invert`,
 `--changed-since`, `--last-failed`, `--shard`, `--pass-with-no-tests`),
@@ -82,10 +84,9 @@ prints one line per test-target pair, `file › title [target] #tag`, skipped
 pairs ending in ` (skipped: <reason>)`, and starts no app, engine, or
 worker. With `--changed-since`, the configured filters run as for `run`; a
 pair one left out ends in ` (left out by <filter>: <reason>)`. `--reporter json` prints
-`{ "pairs": [...] }`, naming a skip or left-out reason `reason` and the
-filter that left a pair out `filter`.
-`test.todo(title)` pairs appear as `(todo)`; an all-TODO selection makes no
-attempts and exits 0.
+`{ "pairs": [...] }`; TODO pairs have disposition `todo`, while skipped and
+filtered pairs have a `reason` and filtered pairs also have a `filter`.
+`test.todo(title)` pairs end in `(todo)`.
 
 `import { list } from 'e2e/runner'` returns that selection plus the pairs a
 filter removed, positional arguments that matched no file, and the selected
@@ -203,7 +204,7 @@ hosted service's video by URL.
 
 | Code | Meaning |
 | ---: | --- |
-| 0 | Every selected test passed, was flaky, or was skipped |
+| 0 | Every selected test passed, was flaky, was skipped, or was marked TODO |
 | 1 | A test or setup test failed or timed out |
 | 2 | CLI, config, collection, credential, model-config, or policy error |
 | 3 | Engine, app process, model provider, artifact, or cleanup failure |
