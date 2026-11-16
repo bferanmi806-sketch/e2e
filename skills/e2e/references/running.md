@@ -166,7 +166,7 @@ hosted service's video by URL.
   `--repeat-each`), `selected`, `status`, `attempts[]` of `steps[]`,
   `artifacts[]`, `error`. `run.summary` counts the selected results:
   `passed`, `failed` (timed out included), `interrupted` (stopped by the
-  run: a signal, `--max-failures`, `--max-duration`, a run-level error; not a failure), `flaky`, and `skipped` add up
+  run: a signal, `--max-failures`, `--max-duration`, a run-level error; not a failure), `flaky`, `skipped`, and `todo` add up
   to `selected`; `discovered - selected` were left out.
 - `dot`: one ASCII mark per selected test's final result after retries, wrapped at 80 marks; colors follow terminal settings and `NO_COLOR`. It shares `list`'s header, failure details, summary, run errors, and step prompts. Use `--reporter dot,json` for all terminal output on stderr and the JSON report on stdout.
 - `junit`: `junit.xml` for CI summaries; `--reporter list,junit` keeps the

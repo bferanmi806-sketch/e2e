@@ -918,7 +918,7 @@ describe('e2e --version and --help', () => {
     // Commander wraps at the help width, so the choices may span two lines.
     expect(help).toMatch(/\(choices: "any", "all",\s+default: "any"\)/u);
     expect(help).toContain("  $ e2e run 'tests/**/*.smoke.e2e.ts' --target web --tag smoke\n");
-    expect(help).toMatch(/^Exit codes:\n {2}0 {4}every selected test passed/mu);
+    expect(help).toMatch(/^Exit codes:\n {2}0 {4}every selected test passed, was flaky, was skipped, or was marked todo$/mu);
     expect(help).toMatch(/^ {2}130 {2}interrupted/mu);
     expect(help).toContain('Docs: https://e2e.com/docs/reference/cli#exit-codes\n');
     expect(process.exitCode).toBe(0);
