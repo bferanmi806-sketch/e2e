@@ -264,6 +264,14 @@ describe('registration', () => {
     expect(registration.tests.map((item) => item.mode)).toEqual(['normal']);
   });
 
+  it('rejects a body passed to test.todo at runtime', async () => {
+    await expect(
+      collectModule(async () => {
+        Reflect.apply(test.todo, test, ['has a body', noop]);
+      }),
+    ).rejects.toThrow('test.todo() accepts a title only');
+  });
+
   it('registers expected failures by test.fail(title, fn) and the fail option, and checks the option', async () => {
     const registration = await collectModule(async () => {
       test.fail('registered', noop);

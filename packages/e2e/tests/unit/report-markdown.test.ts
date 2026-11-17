@@ -222,6 +222,13 @@ describe('renderMarkdownReport', () => {
     );
   });
 
+  it('labels TODO rows as not implemented and omits duration for a TODO-only file', () => {
+    const body = renderMarkdownReport(page({ results: [named({ title: 'add checkout coverage', file: 'tests/checkout.e2e.ts', status: 'todo' })] }));
+    expect(body).toContain('| 📝 | **tests/checkout.e2e.ts** · 1 todo |  |');
+    expect(body).toContain('| 📝 | add checkout coverage (not implemented) |  |');
+    expect(body).not.toContain('tests/checkout.e2e.ts** · 1 todo | 0ms');
+  });
+
   it('leaves a result the selection did not choose out of the counts and the list, and reads one without the flag as selected', () => {
     const unselected = { ...named({ title: 'agent journey', file: 'tests/agent/tests.e2e.ts', status: 'skipped', skip: { cause: 'filtered', reason: 'file not selected by a positional argument' } }), selected: false };
     const body = renderMarkdownReport(page({ results: [passing, unselected] }));

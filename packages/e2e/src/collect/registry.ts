@@ -751,16 +751,15 @@ function createTestAPI(chain: readonly FixtureDefinition[]): TestAPI {
       skipRunningTest(call.condition, call.reason);
       return undefined;
     },
-    todo(title: string): TestCase {
+    todo(title: string, ...args: never[]): TestCase {
+      if (args.length > 0) throw new CollectionError('test.todo() accepts a title only');
       return requireCollector('test.todo()').registerTest(
         'test',
         'todo',
         title,
         {},
         [],
-        () => {
-          throw new CollectionError('test.todo() must never be scheduled for execution');
-        },
+        () => {},
         chain,
       );
     },

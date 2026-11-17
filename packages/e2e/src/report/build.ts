@@ -395,7 +395,8 @@ export interface ReportSummary {
   interrupted: number;
   flaky: number;
   skipped: number;
-  todo: number;
+  /** Absent in report-1 documents written before TODO results were supported. */
+  todo?: number | undefined;
 }
 
 /**

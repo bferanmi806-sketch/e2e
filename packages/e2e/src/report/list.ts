@@ -36,7 +36,10 @@ import {
   emptyUsage,
   F_CHECK,
   F_CROSS,
+  F_DOWN,
   F_POINTER,
+  statusPresentation,
+  statusSymbol,
   fileOutcome,
   formatClock,
   formatTime,
@@ -69,7 +72,6 @@ import { LiveWindow } from './live-window.ts';
 import { repeatGroups, repeatLine, repeatSummary, type RepeatRun } from './repeats.ts';
 import { RunningTree } from './running-tree.ts';
 
-const F_DOWN = '↓';
 const F_RIGHT = '→';
 /** Indentation under a badge line, matching vitest's banner padding. */
 const BADGE_PADDING = '      ';
@@ -910,16 +912,7 @@ export class ListReporter implements Reporter {
     const { pc } = this;
     const counts = tally(group.lines);
     const outcome = fileOutcome(counts);
-    const symbol =
-      outcome === 'failed'
-        ? pc.red(F_POINTER)
-        : outcome === 'interrupted'
-          ? pc.yellow(F_POINTER)
-          : outcome === 'skipped'
-            ? pc.dim(pc.gray(F_DOWN))
-            : outcome === 'todo'
-              ? pc.dim('○')
-            : pc.green(F_CHECK);
+    const symbol = statusSymbol(pc, outcome, true);
     const state = [
       pc.dim(`${counts.total} test${counts.total === 1 ? '' : 's'}`),
       counts.failed > 0 ? pc.red(`${counts.failed} failed`) : undefined,
@@ -970,13 +963,13 @@ export class ListReporter implements Reporter {
     switch (line.status) {
       case 'passed':
         return [
-          `   ${pc.green(F_CHECK)} ${title}${this.expectedTag(line)} ${duration}${ai}`,
+          `   ${statusSymbol(pc, line.status)} ${title}${this.expectedTag(line)} ${duration}${ai}`,
           ...this.expectedFailureLines(line),
           ...this.cleanupLines(line),
         ];
       case 'flaky':
         return [
-          `   ${pc.yellow(F_CHECK)} ${title} ${pc.yellow('(flaky)')}${this.expectedTag(line)} ${duration}${ai}`,
+          `   ${statusSymbol(pc, line.status)} ${title} ${pc.yellow(statusPresentation(line.status).terminalNote)}${this.expectedTag(line)} ${duration}${ai}`,
           ...this.expectedFailureLines(line),
           ...this.cleanupLines(line),
         ];
@@ -986,15 +979,15 @@ export class ListReporter implements Reporter {
           line.skipReason === undefined || line.skipReason === 'skipped'
             ? ''
             : pc.dim(pc.gray(` [${line.skipReason}]`));
-        return [`   ${pc.dim(pc.gray(F_DOWN))} ${title}${reason}`];
+        return [`   ${statusSymbol(pc, line.status)} ${title}${reason}`];
       }
       case 'todo':
-        return [`   ${pc.dim('○')} ${title} ${pc.dim('(todo)')}`];
+        return [`   ${statusSymbol(pc, line.status)} ${title} ${pc.dim(statusPresentation(line.status).terminalNote)}`];
       case 'interrupted':
-        return [`   ${pc.yellow(F_CROSS)} ${title} ${pc.yellow('(interrupted)')} ${duration}${ai}`];
+        return [`   ${statusSymbol(pc, line.status)} ${title} ${pc.yellow(statusPresentation(line.status).terminalNote)} ${duration}${ai}`];
       default: {
         const status = line.status === 'failed' ? '' : pc.red(` (${line.status})`);
-        const rows = [`   ${pc.red(`${F_CROSS} ${title}`)}${status} ${duration}${ai}`];
+        const rows = [`   ${statusSymbol(pc, line.status)} ${title}${status} ${duration}${ai}`];
         if (line.firstErrorLine !== undefined) {
           // A glance line; the `Failed Tests` section carries the whole message.
           const glance = fitColumns(line.firstErrorLine, terminalColumns() - ERROR_GLANCE_INDENT);

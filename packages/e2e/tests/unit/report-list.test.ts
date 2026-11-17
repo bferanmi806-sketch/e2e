@@ -310,6 +310,19 @@ describe('ListReporter', () => {
       ]);
     });
 
+    it('marks a TODO as unimplemented and does not print a test duration', () => {
+      const { lines, output } = capture();
+      const reporter = plainReporter({ ...output, raw: () => {} }, true);
+      reporter.handle(plan([{ file: 'tests/checkout.e2e.ts', tests: 1 }]));
+      reporter.handle(finished(
+        result({ status: 'todo', file: 'tests/checkout.e2e.ts', title: ['checkout', 'add coverage'], attempts: [] }),
+      ));
+      expect(lines).toEqual([
+        ' ○ |chromium| tests/checkout.e2e.ts (1 test | 1 todo)',
+        '   ○ checkout > add coverage (todo)',
+      ]);
+    });
+
     it('tags a test that ran as an agent other than default, so a persona sweep lists once per agent', () => {
       const { lines, output } = capture();
       const reporter = plainReporter(output);

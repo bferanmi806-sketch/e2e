@@ -18,6 +18,8 @@ export type Colors = ReturnType<typeof picocolors.createColors>;
 export const F_POINTER = '❯';
 export const F_CHECK = '✓';
 export const F_CROSS = '×';
+export const F_DOWN = '↓';
+const F_TODO = '○';
 
 /**
  * A step's call under the session it ran on when that is not the test's
@@ -155,6 +157,47 @@ export function statusBucket(status: ResultStatus): 'passed' | 'failed' | 'inter
   return status === 'timed-out' ? 'failed' : status;
 }
 
+interface StatusPresentation {
+  bucket: ReturnType<typeof statusBucket>;
+  glyph: string;
+  fileGlyph: string;
+  tone: 'green' | 'yellow' | 'red' | 'skip' | 'todo';
+  terminalNote: string;
+  markdownNote?: string;
+}
+
+/** One place for each result status's glyph, color, and reporter note. */
+export function statusPresentation(status: ResultStatus): StatusPresentation {
+  switch (status) {
+    case 'passed':
+      return { bucket: 'passed', glyph: F_CHECK, fileGlyph: F_CHECK, tone: 'green', terminalNote: '' };
+    case 'flaky':
+      return { bucket: 'flaky', glyph: F_CHECK, fileGlyph: F_CHECK, tone: 'yellow', terminalNote: '(flaky)' };
+    case 'failed':
+    case 'timed-out':
+      return { bucket: 'failed', glyph: F_CROSS, fileGlyph: F_POINTER, tone: 'red', terminalNote: '' };
+    case 'interrupted':
+      return { bucket: 'interrupted', glyph: F_CROSS, fileGlyph: F_POINTER, tone: 'yellow', terminalNote: '(interrupted)' };
+    case 'skipped':
+      return { bucket: 'skipped', glyph: F_DOWN, fileGlyph: F_DOWN, tone: 'skip', terminalNote: '' };
+    case 'todo':
+      return { bucket: 'todo', glyph: F_TODO, fileGlyph: F_TODO, tone: 'todo', terminalNote: '(todo)', markdownNote: 'not implemented' };
+  }
+}
+
+/** The status glyph in the list reporter, styled consistently for test and file rows. */
+export function statusSymbol(pc: Colors, status: ResultStatus, file = false): string {
+  const presentation = statusPresentation(status);
+  const glyph = file ? presentation.fileGlyph : presentation.glyph;
+  switch (presentation.tone) {
+    case 'green': return pc.green(glyph);
+    case 'yellow': return pc.yellow(glyph);
+    case 'red': return pc.red(glyph);
+    case 'skip': return pc.dim(pc.gray(glyph));
+    case 'todo': return pc.dim(glyph);
+  }
+}
+
 /** A result status, or a filter step's outcome, as a line of text says it: `timed out` for `timed-out`. */
 export const STATUS_WORD: Record<ResultStatus, string> = {
   passed: 'passed',
@@ -180,7 +223,7 @@ export function tally(items: readonly { readonly status: ResultStatus }[]): Coun
 export function fileOutcome(counters: Counters): 'passed' | 'failed' | 'interrupted' | 'skipped' | 'todo' {
   if (counters.failed > 0) return 'failed';
   if (counters.interrupted > 0) return 'interrupted';
-  if (counters.total > 0 && counters.passed + counters.failed + counters.interrupted + counters.flaky === 0) {
+  if (counters.total > 0 && counters.skipped + counters.todo === counters.total) {
     return counters.todo > 0 ? 'todo' : 'skipped';
   }
   return 'passed';

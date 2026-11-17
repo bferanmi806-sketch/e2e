@@ -143,6 +143,7 @@ describe('telemetry events', () => {
       tests_interrupted: 0,
       tests_flaky: 0,
       tests_skipped: 0,
+      tests_todo: 0,
       tests_failed_as_expected: 0,
       filters_run: 0,
       filters_timed_out: 0,
@@ -335,6 +336,12 @@ describe('telemetry events', () => {
       agent_miss_reasons: { retry: 1 },
       agent_handoff_reasons: { 'target-not-found': 1 },
     });
+  });
+
+  it('reports TODO counts separately in the completed-run event', () => {
+    const report = sampleReport();
+    report.run.summary.todo = 1;
+    expect(runCompletedEvent(report, RUN).properties).toMatchObject({ tests_todo: 1 });
   });
 
   it('counts the model calls by agent api', () => {
