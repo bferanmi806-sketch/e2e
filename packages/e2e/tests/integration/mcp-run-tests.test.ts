@@ -178,7 +178,7 @@ describe('e2e mcp run_tests', { timeout: 120_000 }, () => {
   it('runs one file as e2e run does, with progress per line', async () => {
     const run = await runTests({ files: ['tests/passing.e2e.ts'] });
     expect(run.isError, run.text).toBe(false);
-    expect(run.text).toMatch(/^e2e run -- tests\/passing\.e2e\.ts\nexit 0: every selected test passed, was flaky, or was skipped\n/);
+    expect(run.text).toMatch(/^e2e run -- tests\/passing\.e2e\.ts\nexit 0: every selected test passed, was flaky, was skipped, or was marked todo\n/);
     expect(run.text).toContain('tests/passing.e2e.ts > counts to one');
     expect(run.text).toContain('Tests  2 passed (2)');
     expect(run.text).not.toContain('\u001B[');

@@ -67,8 +67,8 @@ function memberRan(member: ReportSerialGroup['attempts'][number]['members'][numb
  * status counts are over the selected ones, and a serial member executed when
  * one of its group's attempts ran its body, a body that skipped itself included.
  */
-function summarize(results: readonly ReportResult[], serialGroups: readonly ReportSerialGroup[]): ReportSummary {
-  const summary: ReportSummary & { todo: number } = { discovered: results.length, selected: 0, executed: 0, passed: 0, failed: 0, interrupted: 0, flaky: 0, skipped: 0, todo: 0 };
+function summarize(results: readonly ReportResult[], serialGroups: readonly ReportSerialGroup[]): Required<ReportSummary> {
+  const summary: Required<ReportSummary> = { discovered: results.length, selected: 0, executed: 0, passed: 0, failed: 0, interrupted: 0, flaky: 0, skipped: 0, todo: 0 };
   const ranMembers = new Set(
     serialGroups.flatMap((group) =>
       group.attempts.flatMap((attempt) =>

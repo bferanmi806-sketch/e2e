@@ -32,6 +32,7 @@ describe('checkout', { tags: ['billing'] }, () => {
 | [`test.skip`](#test-skip) | `TestCase \| void` |
 | [`test.skipIf`](#test-skipif) | `TestRegistrar` |
 | [`test.runIf`](#test-runif) | `TestRegistrar` |
+| [`test.todo`](#test-todo) | `TestCase` |
 | [`test.fail`](#test-fail) | `TestCase \| void` |
 | [`test.only`](#test-only) | `TestCase` |
 | [`test.setup`](#test-setup) | `TestCase` |
@@ -139,6 +140,16 @@ test.runIf(process.platform === 'linux')('reads inotify events', async ({ app })
 ```
 
 `test.runIf(condition)` は `test.skipIf(!condition)` と同じです。[`test.skipIf`](#test-skipif) のルールがすべて適用されます。
+
+#### `test.todo`
+
+タイトルだけで未実装のテストを登録します。ステータス `todo` として報告され、実行されません。TODO のみの実行は失敗しません。
+
+```ts
+test.describe('checkout', () => {
+  test.todo('add checkout coverage');
+});
+```
 
 #### `test.fail`
 
@@ -689,6 +700,8 @@ export interface TestRegistrar<Fixtures = TestFixtures & WorkerFixtures> {
 export interface TestAPI<Fixtures = TestFixtures, Worker = WorkerFixtures> extends TestRegistrar<Fixtures & Worker> {
   /** Registers one skipped test. */
   skip(title: string, fn: TestFn<Fixtures & Worker>): TestCase;
+  /** Registers a test that is not yet implemented. It is reported as todo and never runs. */
+  todo(title: string): TestCase;
   /**
    * Inside a running test: skips it when `condition` is true (or always,
    * with no condition) by throwing, so nothing after the call runs. The

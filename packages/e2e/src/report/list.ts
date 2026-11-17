@@ -38,7 +38,7 @@ import {
   F_CROSS,
   F_DOWN,
   F_POINTER,
-  statusPresentation,
+  fileStatusSymbol,
   statusSymbol,
   fileOutcome,
   formatClock,
@@ -912,7 +912,7 @@ export class ListReporter implements Reporter {
     const { pc } = this;
     const counts = tally(group.lines);
     const outcome = fileOutcome(counts);
-    const symbol = statusSymbol(pc, outcome, true);
+    const symbol = fileStatusSymbol(pc, outcome);
     const state = [
       pc.dim(`${counts.total} test${counts.total === 1 ? '' : 's'}`),
       counts.failed > 0 ? pc.red(`${counts.failed} failed`) : undefined,
@@ -969,7 +969,7 @@ export class ListReporter implements Reporter {
         ];
       case 'flaky':
         return [
-          `   ${statusSymbol(pc, line.status)} ${title} ${pc.yellow(statusPresentation(line.status).terminalNote)}${this.expectedTag(line)} ${duration}${ai}`,
+          `   ${statusSymbol(pc, line.status)} ${title} ${pc.yellow('(flaky)')}${this.expectedTag(line)} ${duration}${ai}`,
           ...this.expectedFailureLines(line),
           ...this.cleanupLines(line),
         ];
@@ -982,12 +982,12 @@ export class ListReporter implements Reporter {
         return [`   ${statusSymbol(pc, line.status)} ${title}${reason}`];
       }
       case 'todo':
-        return [`   ${statusSymbol(pc, line.status)} ${title} ${pc.dim(statusPresentation(line.status).terminalNote)}`];
+        return [`   ${statusSymbol(pc, line.status)} ${title} ${pc.dim('(todo)')}`];
       case 'interrupted':
-        return [`   ${statusSymbol(pc, line.status)} ${title} ${pc.yellow(statusPresentation(line.status).terminalNote)} ${duration}${ai}`];
+        return [`   ${statusSymbol(pc, line.status)} ${title} ${pc.yellow('(interrupted)')} ${duration}${ai}`];
       default: {
         const status = line.status === 'failed' ? '' : pc.red(` (${line.status})`);
-        const rows = [`   ${statusSymbol(pc, line.status)} ${title}${status} ${duration}${ai}`];
+        const rows = [`   ${statusSymbol(pc, line.status)} ${pc.red(title)}${status} ${duration}${ai}`];
         if (line.firstErrorLine !== undefined) {
           // A glance line; the `Failed Tests` section carries the whole message.
           const glance = fitColumns(line.firstErrorLine, terminalColumns() - ERROR_GLANCE_INDENT);

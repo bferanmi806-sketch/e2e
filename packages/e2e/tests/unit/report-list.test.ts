@@ -297,6 +297,19 @@ describe('ListReporter', () => {
       expect(lines).toEqual([' ✓ |chromium| tests/auth.e2e.ts (2 tests) 150ms']);
     });
 
+    it.each(['failed', 'timed-out'] as const)('keeps the %s test title red when colors are enabled', (status) => {
+      const chunks: string[] = [];
+      const reporter = new ListReporter({ write: (line) => chunks.push(line) }, { live: false, colors: true });
+      reporter.handle(plan([{ file: 'tests/auth.e2e.ts', tests: 1 }]));
+      reporter.handle(finished(
+        result({ status, file: 'tests/auth.e2e.ts', title: ['auth', 'signs in'], attempts: [failedAttempt('still signed in')] }),
+      ));
+      const row = chunks.find((line) => line.includes('auth > signs in'))!;
+      const title = row.indexOf('auth > signs in');
+      expect(row.lastIndexOf('\u001b[31m', title)).toBeGreaterThan(row.lastIndexOf('\u001b[39m', title));
+      expect(row.indexOf('\u001b[39m', title)).toBeGreaterThan(title);
+    });
+
     it('lists every test under the run\u2019s only file', () => {
       const { lines, output } = capture();
       const reporter = plainReporter({ ...output, raw: () => {} }, true);

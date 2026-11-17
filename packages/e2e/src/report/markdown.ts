@@ -23,7 +23,7 @@ import path from 'node:path';
 import { collapseText } from '@e2e-dev/core/lib/internal/text';
 import type { Report1Document, ReportChanges, ReportError, ReportExplore, ReportExploreFinding, ReportFilter, ReportResult, ReportStep, ReportTarget } from './build.ts';
 import { ENDED_TEXT, orderFindings, SEVERITY_WORDS, stepCountParts } from './explore-text.ts';
-import { fileOutcome, filterDecision, formatCost, formatTokens, repeatSuffix, shortCommit, statusBucket, statusPresentation, tally, type Counters } from './format.ts';
+import { filterDecision, formatCost, formatTokens, repeatSuffix, shortCommit, statusBucket, tally, type Counters } from './format.ts';
 import { leftOutTests } from './left-out.ts';
 import { repeatGroups, repeatLine, repeatSummary, type RepeatGroup } from './repeats.ts';
 import {
@@ -445,23 +445,25 @@ function row(cells: readonly string[]): string {
 function testRow({ result, final }: Entry, withAgent: boolean): string {
   const skipped = result.status === 'skipped';
   const todo = result.status === 'todo';
-  const presentation = statusPresentation(result.status);
+  const bucket = statusBucket(result.status);
   const expected = result.attempts.at(-1)?.expectedFailure;
   let note = '';
   if (skipped) note = `skipped: ${cell(result.skip?.reason ?? 'skipped')}`;
-  else if (presentation.markdownNote !== undefined) note = presentation.markdownNote;
+  else if (todo) note = 'not implemented';
   else if (expected?.error !== undefined) note = `failed as expected: ${cell(expected.reason)}, ${cell(expected.error.code)}: ${cell(expected.error.message)}`;
   else if (result.status === 'flaky') note = `${plural(final.failedAttempts, 'failed attempt')} first`;
   const name = `${testName(result)}${note === '' ? '' : ` (${note})`}`;
-  return row([ICON[presentation.bucket], name, ...(withAgent ? [agentCell(final.final.steps)] : []), skipped || todo ? '' : formatDuration(final.durationMs)]);
+  return row([ICON[bucket], name, ...(withAgent ? [agentCell(final.final.steps)] : []), skipped || todo ? '' : formatDuration(final.durationMs)]);
 }
 
 /** `⚠️ | **tests/billing.e2e.ts** · 1 failed, 2 passed | 3 steps · 19 calls | 41.2s`: a file's row above its tests, the glyph its worst result's. */
 function fileRow(group: FileGroup, manyTargets: boolean, withAgent: boolean): string {
   const results = group.entries.map((entry) => entry.result);
-  const time = fileOutcome(tally(results)) === 'todo' ? '' : formatDuration(group.entries.reduce((total, entry) => total + entry.final.durationMs, 0));
+  const counts = tally(results);
+  const ranAnAttempt = group.entries.some(({ result }) => result.attempts.length > 0);
+  const time = ranAnAttempt ? formatDuration(group.entries.reduce((total, entry) => total + entry.final.durationMs, 0)) : '';
   const agent = withAgent ? [agentCell(group.entries.flatMap((entry) => entry.final.final.steps))] : [];
-  return row([ICON[worstBucket(results)], `**${fileLabel(group.file, group.target, manyTargets)}** · ${countText(tally(results))}`, ...agent, time]);
+  return row([ICON[worstBucket(results)], `**${fileLabel(group.file, group.target, manyTargets)}** · ${countText(counts)}`, ...agent, time]);
 }
 
 /**

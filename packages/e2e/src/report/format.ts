@@ -157,45 +157,50 @@ export function statusBucket(status: ResultStatus): 'passed' | 'failed' | 'inter
   return status === 'timed-out' ? 'failed' : status;
 }
 
-interface StatusPresentation {
-  bucket: ReturnType<typeof statusBucket>;
-  glyph: string;
-  fileGlyph: string;
-  tone: 'green' | 'yellow' | 'red' | 'skip' | 'todo';
-  terminalNote: string;
-  markdownNote?: string;
-}
+export type FileOutcome = 'passed' | 'failed' | 'interrupted' | 'skipped' | 'todo';
 
-/** One place for each result status's glyph, color, and reporter note. */
-export function statusPresentation(status: ResultStatus): StatusPresentation {
+const TEST_STATUS_GLYPH: Record<ResultStatus, string> = {
+  passed: F_CHECK,
+  flaky: F_CHECK,
+  failed: F_CROSS,
+  'timed-out': F_CROSS,
+  interrupted: F_CROSS,
+  skipped: F_DOWN,
+  todo: F_TODO,
+};
+
+const FILE_STATUS_GLYPH: Record<FileOutcome, string> = {
+  passed: F_CHECK,
+  failed: F_POINTER,
+  interrupted: F_POINTER,
+  skipped: F_DOWN,
+  todo: F_TODO,
+};
+
+function coloredStatusSymbol(pc: Colors, status: ResultStatus, glyph: string): string {
   switch (status) {
-    case 'passed':
-      return { bucket: 'passed', glyph: F_CHECK, fileGlyph: F_CHECK, tone: 'green', terminalNote: '' };
-    case 'flaky':
-      return { bucket: 'flaky', glyph: F_CHECK, fileGlyph: F_CHECK, tone: 'yellow', terminalNote: '(flaky)' };
+    case 'passed': return pc.green(glyph);
+    case 'flaky': return pc.yellow(glyph);
     case 'failed':
-    case 'timed-out':
-      return { bucket: 'failed', glyph: F_CROSS, fileGlyph: F_POINTER, tone: 'red', terminalNote: '' };
-    case 'interrupted':
-      return { bucket: 'interrupted', glyph: F_CROSS, fileGlyph: F_POINTER, tone: 'yellow', terminalNote: '(interrupted)' };
-    case 'skipped':
-      return { bucket: 'skipped', glyph: F_DOWN, fileGlyph: F_DOWN, tone: 'skip', terminalNote: '' };
-    case 'todo':
-      return { bucket: 'todo', glyph: F_TODO, fileGlyph: F_TODO, tone: 'todo', terminalNote: '(todo)', markdownNote: 'not implemented' };
+    case 'timed-out': return pc.red(glyph);
+    case 'interrupted': return pc.yellow(glyph);
+    case 'skipped': return pc.dim(pc.gray(glyph));
+    case 'todo': return pc.dim(glyph);
+    default: {
+      const exhaustive: never = status;
+      return exhaustive;
+    }
   }
 }
 
-/** The status glyph in the list reporter, styled consistently for test and file rows. */
-export function statusSymbol(pc: Colors, status: ResultStatus, file = false): string {
-  const presentation = statusPresentation(status);
-  const glyph = file ? presentation.fileGlyph : presentation.glyph;
-  switch (presentation.tone) {
-    case 'green': return pc.green(glyph);
-    case 'yellow': return pc.yellow(glyph);
-    case 'red': return pc.red(glyph);
-    case 'skip': return pc.dim(pc.gray(glyph));
-    case 'todo': return pc.dim(glyph);
-  }
+/** The status glyph for an individual test row. */
+export function statusSymbol(pc: Colors, status: ResultStatus): string {
+  return coloredStatusSymbol(pc, status, TEST_STATUS_GLYPH[status]);
+}
+
+/** The status glyph for a file row, whose outcome is coarser than a test's. */
+export function fileStatusSymbol(pc: Colors, status: FileOutcome): string {
+  return coloredStatusSymbol(pc, status, FILE_STATUS_GLYPH[status]);
 }
 
 /** A result status, or a filter step's outcome, as a line of text says it: `timed out` for `timed-out`. */
@@ -220,7 +225,7 @@ export function tally(items: readonly { readonly status: ResultStatus }[]): Coun
 }
 
 /** A file's outcome from its tests: failures first, then interrupted, then all-unrun skips or todos, else passed. */
-export function fileOutcome(counters: Counters): 'passed' | 'failed' | 'interrupted' | 'skipped' | 'todo' {
+export function fileOutcome(counters: Counters): FileOutcome {
   if (counters.failed > 0) return 'failed';
   if (counters.interrupted > 0) return 'interrupted';
   if (counters.total > 0 && counters.skipped + counters.todo === counters.total) {
