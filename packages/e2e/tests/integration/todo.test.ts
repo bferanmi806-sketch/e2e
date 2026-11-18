@@ -11,6 +11,18 @@ test.describe('checkout', () => {
 });
 `;
 
+const TODO_AND_SKIP_TEST = `import { test } from 'e2e';
+
+test.todo('add checkout coverage');
+test.skip('parked coverage', async () => {});
+`;
+
+const RUNNABLE_AND_TODO_TEST = `import { test } from 'e2e';
+
+test('ready', async () => {});
+test.todo('future');
+`;
+
 const SERIAL_TODO_TEST = `import { describe, test } from 'e2e';
 
 describe('wizard', { serial: true }, () => {
@@ -90,21 +102,65 @@ describe('test.todo', () => {
     }
   });
 
-  it.each([1, 2])('lets a TODO-only project run on shard %i/2', async (index) => {
-    const { outcome, project } = await runProject({ 'tests/checkout.e2e.ts': TODO_TEST }, { runOptions: { shard: { index, total: 2 } } });
+  it('lets a TODO-only run pass but reports an empty shard as NO_TESTS', async () => {
+    const { outcome: unsharded, project: unshardedProject } = await runProject({ 'tests/checkout.e2e.ts': TODO_TEST }, {});
     try {
-      expect(outcome.exitCode).toBe(0);
-      expect(outcome.report.run.errors).toEqual([]);
-      if (index === 1) expect(resultByTitle(outcome, 'add checkout coverage')).toMatchObject({ status: 'todo', attempts: [] });
-      else {
-        expect(resultByTitle(outcome, 'add checkout coverage')).toMatchObject({
-          status: 'skipped',
-          selected: false,
-          skip: { cause: 'filtered', reason: 'outside the shard' },
-        });
-      }
+      expect(unsharded.exitCode).toBe(0);
+      expect(resultByTitle(unsharded, 'add checkout coverage')).toMatchObject({ status: 'todo', selected: true, attempts: [] });
     } finally {
-      project.cleanup();
+      unshardedProject.cleanup();
+    }
+
+    const { outcome: firstShard, project: firstProject } = await runProject(
+      { 'tests/checkout.e2e.ts': TODO_TEST },
+      { runOptions: { shard: { index: 1, total: 2 } } },
+    );
+    try {
+      expect(firstShard.exitCode).toBe(0);
+      expect(resultByTitle(firstShard, 'add checkout coverage')).toMatchObject({ status: 'todo', selected: true, attempts: [] });
+    } finally {
+      firstProject.cleanup();
+    }
+
+    const { outcome: emptyShard, project: emptyProject } = await runProject(
+      { 'tests/checkout.e2e.ts': TODO_TEST },
+      { runOptions: { shard: { index: 2, total: 2 } } },
+    );
+    try {
+      expect(emptyShard.exitCode).toBe(2);
+      expect(emptyShard.report.run.errors).toEqual([expect.objectContaining({ code: 'NO_TESTS', phase: 'collection' })]);
+    } finally {
+      emptyProject.cleanup();
+    }
+
+    const { outcome: allowedEmptyShard, project: allowedProject } = await runProject(
+      { 'tests/checkout.e2e.ts': TODO_TEST },
+      { runOptions: { shard: { index: 2, total: 2 }, passWithNoTests: true } },
+    );
+    try {
+      expect(allowedEmptyShard.exitCode).toBe(0);
+      expect(resultByTitle(allowedEmptyShard, 'add checkout coverage')).toMatchObject({
+        status: 'skipped',
+        selected: false,
+        skip: { cause: 'filtered', reason: 'outside the shard' },
+      });
+    } finally {
+      allowedProject.cleanup();
+    }
+  });
+
+  it('reports NO_TESTS when a shard selects no runnable test alongside TODOs', async () => {
+    for (const source of [TODO_AND_SKIP_TEST, RUNNABLE_AND_TODO_TEST]) {
+      const { outcome, project } = await runProject(
+        { 'tests/checkout.e2e.ts': source },
+        { runOptions: { shard: { index: 2, total: 2 } } },
+      );
+      try {
+        expect(outcome.exitCode).toBe(2);
+        expect(outcome.report.run.errors).toEqual([expect.objectContaining({ code: 'NO_TESTS', phase: 'collection' })]);
+      } finally {
+        project.cleanup();
+      }
     }
   });
 });

@@ -143,7 +143,7 @@ test.runIf(process.platform === 'linux')('reads inotify events', async ({ app })
 
 #### `test.todo`
 
-仅通过标题注册一个占位测试。它会以 `todo` 状态报告，不会执行，也不会使仅包含 TODO 的运行失败。
+仅通过标题注册一个占位测试。它会以 `todo` 状态报告，不会执行。仅包含 TODO 的运行会成功；空分片仍会报 `NO_TESTS`，除非传入 `--pass-with-no-tests`。
 
 ```ts
 describe('checkout', () => {
@@ -153,7 +153,7 @@ describe('checkout', () => {
 
 | 错误 | 条件 |
 | --- | --- |
-| `INVALID_ARGUMENT` | 为 `test.todo` 传入了测试主体。TODO 占位测试没有主体。 |
+| `COLLECTION_ERROR` | 为 `test.todo` 传入了测试主体。TODO 占位测试没有主体。 |
 
 #### `test.fail`
 

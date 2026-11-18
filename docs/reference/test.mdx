@@ -173,7 +173,8 @@ Everything in [`test.skipIf`](#test-skipif) applies.
 #### `test.todo`
 
 Registers a placeholder by title. It is reported with status `todo`, is never
-executed, and does not make a TODO-only run fail.
+executed, and a TODO-only run succeeds. An empty shard still fails with
+`NO_TESTS` unless you pass `--pass-with-no-tests`.
 
 ```ts
 describe('checkout', () => {
@@ -183,7 +184,7 @@ describe('checkout', () => {
 
 | Throws | When |
 | --- | --- |
-| `INVALID_ARGUMENT` | A body is passed to `test.todo`; TODO placeholders have no body. |
+| `COLLECTION_ERROR` | A body is passed to `test.todo`; TODO placeholders have no body. |
 
 #### `test.fail`
 

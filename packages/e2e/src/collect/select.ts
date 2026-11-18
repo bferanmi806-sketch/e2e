@@ -372,11 +372,7 @@ export function select(
   const selectedOrdinary = withSessions.filter(
     (pair) => (pair.disposition === 'run' || pair.disposition === 'todo') && pair.test.kind === 'test',
   );
-  const todoOnlyShard =
-    filters.shard !== undefined &&
-    withSessions.some((pair) => pair.test.kind === 'test' && pair.test.mode === 'todo' && pair.disposition === 'filtered' && pair.skip?.reason === FILTERED_REASON.shard) &&
-    withSessions.filter((pair) => pair.test.kind === 'test').every((pair) => pair.test.mode === 'todo');
-  if (selectedOrdinary.length === 0 && !todoOnlyShard && flags.passWithNoTests !== true) {
+  if (selectedOrdinary.length === 0 && flags.passWithNoTests !== true) {
     throw new ConfigurationError(
       'NO_TESTS',
       `${describeNoTests(collection, config, filters, withSessions)}; ${flags.noTestsHint ?? 'pass --pass-with-no-tests to allow this'}`,
