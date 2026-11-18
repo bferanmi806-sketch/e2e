@@ -93,7 +93,16 @@ const TONE_TEXT: Record<Tone, string> = {
 const TONE_ICON: Record<Tone, IconName> = { passed: 'check', failed: 'close', flaky: 'triangle-alert', skipped: 'minus', interrupted: 'minus', todo: 'circle-dashed' };
 
 function resultTone(status: ResultStatus): Tone {
-  return status === 'timed-out' ? 'failed' : status;
+  switch (status) {
+    case 'timed-out': return 'failed';
+    case 'passed':
+    case 'failed':
+    case 'flaky':
+    case 'skipped':
+    case 'interrupted':
+    case 'todo': return status;
+    default: return 'interrupted';
+  }
 }
 
 const STEP_TONE: Record<Step['status'], Tone> = { passed: 'passed', failed: 'failed', blocked: 'failed', 'timed-out': 'failed', cancelled: 'skipped' };

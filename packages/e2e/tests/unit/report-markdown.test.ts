@@ -235,6 +235,33 @@ describe('renderMarkdownReport', () => {
     expect(body).not.toContain('tests/todos.e2e.ts** · 1 skipped | 0ms');
   });
 
+  it('shows file time for a serial-only file whose attempts live on the group', () => {
+    const member = named({ title: 'step', status: 'passed', serialGroupId: 'g1' });
+    const group: ReportSerialGroup = {
+      id: 'g1',
+      serialId: 'g1',
+      declarationIndex: 0,
+      file: member.file,
+      source: member.source,
+      titlePath: ['wizard'],
+      targetId: 'web',
+      platform: 'web',
+      agent: 'default',
+      repeat: 0,
+      memberTestIds: [member.testId],
+      status: 'passed',
+      attempts: [
+        {
+          ...attempt({ durationMs: 900 }),
+          status: 'passed',
+          members: [{ id: 'm1', index: 0, testId: member.testId, status: 'passed', startedAt: REPORT_AT, durationMs: 900, steps: [], secondaryErrors: [] }],
+        },
+      ],
+    };
+    const body = renderMarkdownReport(page({ results: [member], serialGroups: [group] }));
+    expect(body).toContain('| 🟢 | **tests/example.e2e.ts** · 1 passed | 900ms |');
+  });
+
   it('leaves a result the selection did not choose out of the counts and the list, and reads one without the flag as selected', () => {
     const unselected = { ...named({ title: 'agent journey', file: 'tests/agent/tests.e2e.ts', status: 'skipped', skip: { cause: 'filtered', reason: 'file not selected by a positional argument' } }), selected: false };
     const body = renderMarkdownReport(page({ results: [passing, unselected] }));

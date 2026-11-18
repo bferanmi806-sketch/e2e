@@ -176,10 +176,14 @@ Registers a placeholder by title. It is reported with status `todo`, is never
 executed, and does not make a TODO-only run fail.
 
 ```ts
-test.describe('checkout', () => {
+describe('checkout', () => {
   test.todo('add checkout coverage');
 });
 ```
+
+| Throws | When |
+| --- | --- |
+| `INVALID_ARGUMENT` | A body is passed to `test.todo`; TODO placeholders have no body. |
 
 #### `test.fail`
 

@@ -146,10 +146,14 @@ test.runIf(process.platform === 'linux')('reads inotify events', async ({ app })
 仅通过标题注册一个占位测试。它会以 `todo` 状态报告，不会执行，也不会使仅包含 TODO 的运行失败。
 
 ```ts
-test.describe('checkout', () => {
+describe('checkout', () => {
   test.todo('add checkout coverage');
 });
 ```
+
+| 错误 | 条件 |
+| --- | --- |
+| `INVALID_ARGUMENT` | 为 `test.todo` 传入了测试主体。TODO 占位测试没有主体。 |
 
 #### `test.fail`
 

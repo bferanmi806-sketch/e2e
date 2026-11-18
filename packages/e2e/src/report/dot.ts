@@ -23,6 +23,7 @@ export class DotProgress implements OutputView {
       'timed-out': pc.red('T'),
       interrupted: pc.yellow('I'),
       skipped: pc.gray('-'),
+      todo: pc.dim('?'),
     };
   }
 

@@ -762,6 +762,20 @@ describe('select with what the test filters left out', () => {
     ]);
   });
 
+  it('keeps a TODO in a selected serial group as TODO', async () => {
+    const col = await collection(() => {
+      test.describe('wizard', { serial: true }, () => {
+        test('ready', noop);
+        test.todo('future');
+      });
+    });
+    const selection = select(col, config(), { grep: [/ready/] });
+    expect(selection.pairs.map((pair) => [pair.test.title, pair.disposition])).toEqual([
+      ['ready', 'run'],
+      ['future', 'todo'],
+    ]);
+  });
+
   it('runs a setup only for the consumers the filters kept', async () => {
     const col = await collection(() => {
       test.setup('sign in', { sessions: ['member'] }, noop);

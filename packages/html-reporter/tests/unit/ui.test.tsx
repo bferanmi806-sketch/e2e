@@ -37,4 +37,15 @@ describe('TODO status UI', () => {
     expect(list).toContain('aria-label="1 todo"');
     expect(list).toContain('<span>todo</span>');
   });
+
+  it('uses an interrupted-tone fallback for an unknown result status', () => {
+    const status = 'queued' as Report['run']['results'][number]['status'];
+    const icon = renderToStaticMarkup(createElement(StatusIcon, { status }));
+    const tag = renderToStaticMarkup(createElement(StatusTag, { status }));
+
+    expect(icon).toContain('text-status-interrupted');
+    expect(icon).toContain('aria-label="queued"');
+    expect(tag).toContain('text-status-interrupted');
+    expect(tag).toContain('>queued<');
+  });
 });

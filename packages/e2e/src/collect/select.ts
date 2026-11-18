@@ -372,7 +372,11 @@ export function select(
   const selectedOrdinary = withSessions.filter(
     (pair) => (pair.disposition === 'run' || pair.disposition === 'todo') && pair.test.kind === 'test',
   );
-  if (selectedOrdinary.length === 0 && flags.passWithNoTests !== true) {
+  const todoOnlyShard =
+    filters.shard !== undefined &&
+    withSessions.some((pair) => pair.test.kind === 'test' && pair.test.mode === 'todo' && pair.disposition === 'filtered' && pair.skip?.reason === FILTERED_REASON.shard) &&
+    withSessions.filter((pair) => pair.test.kind === 'test').every((pair) => pair.test.mode === 'todo');
+  if (selectedOrdinary.length === 0 && !todoOnlyShard && flags.passWithNoTests !== true) {
     throw new ConfigurationError(
       'NO_TESTS',
       `${describeNoTests(collection, config, filters, withSessions)}; ${flags.noTestsHint ?? 'pass --pass-with-no-tests to allow this'}`,
@@ -754,7 +758,7 @@ function applySerialClosure(pairs: readonly TestTargetPair[]): TestTargetPair[] 
     if (!selectedSerialUnits.has(key)) return pair;
     if (pair.disposition === 'run') return pair;
     if (pair.disposition === 'filtered' && pair.skip?.cause === 'filtered') {
-      return { ...pair, disposition: 'run' as const, skip: undefined };
+      return { ...pair, disposition: pair.test.mode === 'todo' ? ('todo' as const) : ('run' as const), skip: undefined };
     }
     return pair;
   });
@@ -792,9 +796,10 @@ function shardItem(pair: TestTargetPair): string {
  * one item, the first shards taking the remainder. Applied after every flag
  * and the serial closure, before the test filters' exclusions and before the
  * setup tests are chosen, so the cut never depends on what a filter answers
- * and each shard brings only the setups it needs. A skipped test is not an
- * item: the shard holding the item before it in report order reports it, the
- * first shard when none comes before, so the shards together report it once.
+ * and each shard brings only the setups it needs. A skipped or TODO test is
+ * not an item: the shard holding the item before it in report order reports
+ * it, the first shard when none comes before, so the shards together report
+ * it once.
  */
 function applyShard(pairs: readonly TestTargetPair[], shard: Shard): TestTargetPair[] {
   const items = shardItems(pairs);
@@ -807,7 +812,12 @@ function applyShard(pairs: readonly TestTargetPair[], shard: Shard): TestTargetP
   return pairs.map((pair) => {
     if (pair.test.kind !== 'test') return pair;
     if (pair.disposition === 'filtered') return pair;
-    if (pair.disposition === 'skip' || pair.disposition === 'todo') return previousKept ? pair : { ...pair, disposition: 'filtered' as const };
+    if (pair.disposition === 'skip') return previousKept ? pair : { ...pair, disposition: 'filtered' as const };
+    if (pair.disposition === 'todo') {
+      return previousKept
+        ? pair
+        : { ...pair, disposition: 'filtered' as const, skip: { cause: 'filtered' as const, reason: FILTERED_REASON.shard } };
+    }
     previousKept = kept.has(shardItem(pair));
     if (previousKept) return pair;
     return { ...pair, disposition: 'filtered' as const, skip: { cause: 'filtered' as const, reason: FILTERED_REASON.shard } };

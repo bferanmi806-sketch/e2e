@@ -146,10 +146,14 @@ test.runIf(process.platform === 'linux')('reads inotify events', async ({ app })
 タイトルだけで未実装のテストを登録します。ステータス `todo` として報告され、実行されません。TODO のみの実行は失敗しません。
 
 ```ts
-test.describe('checkout', () => {
+describe('checkout', () => {
   test.todo('add checkout coverage');
 });
 ```
+
+| エラー | 条件 |
+| --- | --- |
+| `INVALID_ARGUMENT` | `test.todo` に本体を渡した場合。TODO のプレースホルダーに本体はありません。 |
 
 #### `test.fail`
 

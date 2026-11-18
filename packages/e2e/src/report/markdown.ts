@@ -460,7 +460,7 @@ function testRow({ result, final }: Entry, withAgent: boolean): string {
 function fileRow(group: FileGroup, manyTargets: boolean, withAgent: boolean): string {
   const results = group.entries.map((entry) => entry.result);
   const counts = tally(results);
-  const ranAnAttempt = group.entries.some(({ result }) => result.attempts.length > 0);
+  const ranAnAttempt = group.entries.some(({ final }) => final.attempts.length > 0);
   const time = ranAnAttempt ? formatDuration(group.entries.reduce((total, entry) => total + entry.final.durationMs, 0)) : '';
   const agent = withAgent ? [agentCell(group.entries.flatMap((entry) => entry.final.final.steps))] : [];
   return row([ICON[worstBucket(results)], `**${fileLabel(group.file, group.target, manyTargets)}** · ${countText(counts)}`, ...agent, time]);

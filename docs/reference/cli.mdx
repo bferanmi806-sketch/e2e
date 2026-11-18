@@ -792,8 +792,8 @@ each run error prints on stderr as `CODE: message`, with `json` too.
 - `discovered` is every test-target pair the runner collected, and
   `selected` the ones this run chose. The left-out pairs are in `results` as
   `selected: false`, but in no other count.
-- `passed`, `failed` (timed out included), `interrupted`, `flaky`, and
-  `skipped` count the selected results and add up to `selected`.
+- `passed`, `failed` (timed out included), `interrupted`, `flaky`, `skipped`,
+  and `todo` count the selected results and add up to `selected`.
 - `interrupted` is a test the run stopped before its verdict (a signal,
   `--max-failures`, `--max-duration`, or a run-level error such as
   `MODEL_UNAVAILABLE`), never a failure.
