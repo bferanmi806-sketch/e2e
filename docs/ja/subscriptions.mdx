@@ -12,7 +12,7 @@ description: ChatGPT、GitHub Copilot、OpenCode Console、SuperGrok の契約�
 | ChatGPT Plus または Pro | `npx e2e login openai` |
 | GitHub Copilot | `npx e2e login github-copilot` |
 | OpenCode Console（OpenCode Zen と OpenCode Go） | `npx e2e login opencode-console` |
-| SuperGrok または X Premium+ | `npx e2e login spacexai` |
+| SuperGrok または X Premium+ | `npx e2e login spacexsi` |
 | Claude Max または Team（Claude Code） | API キー。プランの利用枠ではなく、月間 API クレジットから支払う |
 | Claude Code または Codex のログイン | [コーディングエージェントでステップを実行する](#use-your-coding-agent) |
 
@@ -104,17 +104,17 @@ Anthropic 経由では、`maxOutputTokens` を設定しない呼び出しは 819
 <CodeGroup>
 ```bash npm
 npm install -D ai @ai-sdk/xai
-npx e2e login spacexai
+npx e2e login spacexsi
 ```
 
 ```bash pnpm
 pnpm add -D ai @ai-sdk/xai
-pnpm exec e2e login spacexai
+pnpm exec e2e login spacexsi
 ```
 
 ```bash bun
 bun add -d ai @ai-sdk/xai
-bunx e2e login spacexai
+bunx e2e login spacexsi
 ```
 </CodeGroup>
 
@@ -197,11 +197,15 @@ ID は、ベンダーのアプリに表示される名前と同じとは限り�
 
 モデル呼び出しのキャンセルは、トークン更新の待機中にも適用されます。
 
+`npx e2e login` で保存したログインの期限が切れると、並列のワーカーの間で、更新は 1 回だけ行われます。
+ワーカーは、別のワーカーによる更新を最大 30 秒待ちます。
+それを過ぎると、そのワーカーのステップは `MODEL_PROVIDER_FAILED` で失敗します。ただし、先にステップ自身のタイムアウトに達した場合は `STEP_TIMEOUT` になります。
+
 ## CI
 
 CI では API キーを使ってください。Claude Max と Team は、もともと API キーを使います。OpenCode Console では、`OPENCODE_API_KEY` に OpenCode Go サブスクリプションの API キー、または Console の Service Accounts → API Keys で作成したサービスアカウントの API キーを設定します。ChatGPT、Copilot、SuperGrok では [API プロバイダー](/models)を使ってください。
 
-[`E2E_OAUTH_CREDENTIALS`](/reference/environment) で保存済みログインを CI に渡すこともできますが、e2e は更新したトークンを書き戻しません。更新トークンがローテーションするログインは、限られた期間しか使えません。
+[`E2E_OAUTH_CREDENTIALS`](/reference/environment) で保存済みログインを CI に渡すこともできますが、e2e は更新したトークンを書き戻しません。更新トークンがローテーションするログインは、この方法では限られた期間しか使えません。
 
 ## コーディングエージェントを使う
 
@@ -277,7 +281,7 @@ export default {
 | `system` | 最初のステップで渡すルールに追記するテキスト。 |
 | `name` | レポートに表示するエグゼキューター名。 |
 
-予期しない転送エラーが発生すると ACP セッションが停止し、ランナーの失敗出力にシークレットをマスキングして表示します。HTTP クライアントには、例外のテキストを含めず、一般的なエラーまたはストリームの終了が返されます。
+予期しない転送エラーが発生すると ACP セッションが停止し、ランナーの失敗出力にシークレットを秘匿して表示します。HTTP クライアントには、例外のテキストを含めず、一般的なエラーまたはストリームの終了が返されます。
 
 ### エージェントが使えるもの
 

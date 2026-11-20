@@ -46,7 +46,7 @@ import {
   ConfigurationError,
   TestError,
 } from '@e2e-dev/core/engine';
-import { isAppNotRunning, isSnapshotPresentationFailure, isUnreadableCapture, runCommand, staleOr } from './errors.ts';
+import { isAppNotRunning, isSnapshotPresentationFailure, isUnreadableCapture, ORIGIN_UNKNOWN_BOUNDS, ORIGIN_WARNING, runCommand, staleOr } from './errors.ts';
 import { pointerInteraction, DEFAULT_LONG_PRESS_MS } from './actions.ts';
 import { resolveExpression } from './locate.ts';
 import {
@@ -137,9 +137,9 @@ export interface OpenAppOptions {
  * The snapshot fields this engine reads off agent-device's response. `keyboard`
  * is the band the capture's producer measured: `visible` with its frame,
  * `absent`, or that it could not look. `refsGeneration` is the capture its
- * refs were issued from.
+ * refs were issued from. `warnings` is read for `ORIGIN_WARNING` only.
  */
-type RawSnapshot = Partial<Pick<CaptureSnapshotResult, 'nodes' | 'viewport' | 'truncated' | 'appName' | 'appBundleId' | 'snapshotQuality' | 'keyboard' | 'refsGeneration'>>;
+type RawSnapshot = Partial<Pick<CaptureSnapshotResult, 'nodes' | 'viewport' | 'truncated' | 'appName' | 'appBundleId' | 'snapshotQuality' | 'keyboard' | 'refsGeneration' | 'warnings'>>;
 
 /**
  * How far the dismissing drag travels, as a share of the viewport: short
@@ -153,6 +153,17 @@ const KEYBOARD_DRAG_RATIO = 0.03;
 const KEYBOARD_ALTERNATIVES = 'Tap the app\'s own Done or close control, or press Enter on the field when submitting is what you want.';
 
 /**
+ * Whether one line of agent-device's app list names `app`. A line reads
+ * `Name (id)`, the bundle id or package in the parentheses, or carries the
+ * id alone; either the id or the whole name matches.
+ */
+function listsApp(entry: string, app: string): boolean {
+  if (entry === app) return true;
+  const named = /^(.*) \(([^()]+)\)$/.exec(entry);
+  return named !== null && (named[2] === app || named[1] === app);
+}
+
+/**
  * The top edge of the soft keyboard: the band the capture's producer
  * measured, else the highest keyboard or key element, else the bottom of the
  * screen.
@@ -163,8 +174,12 @@ function keyboardTop(raw: RawSnapshot, viewport: ViewportSize): number {
   return Math.min(viewport.height, ...keys.map((node) => node.rect!.y));
 }
 
-/** One projection and the keyboard state captured with it, kept together across an action. */
-type ProjectedScreen = ProjectedSnapshot & { readonly keyboardVisible: boolean };
+/**
+ * One projection and the keyboard state captured with it, kept together
+ * across an action. `originUnknown` is set when the capture could not place
+ * its window on the screen, so its rects may be window-local.
+ */
+type ProjectedScreen = ProjectedSnapshot & { readonly keyboardVisible: boolean; readonly originUnknown: boolean };
 
 /**
  * Whether the capture's producer measured the soft keyboard on screen:
@@ -206,6 +221,8 @@ interface NodeBinding {
   /** The capture `ref` and `controlRef` came from, pinned on every action so agent-device refuses them once a newer capture supersedes it. */
   readonly refsGeneration: number | undefined;
   readonly keyboardVisible: boolean;
+  /** Whether the capture `node.rect` came from could not place its window on the screen. */
+  readonly originUnknown: boolean;
   /** Whether `fill` and `clear` may type into the node, judged with the children `node` leaves out. */
   readonly takesText: boolean;
 }
@@ -1036,6 +1053,47 @@ export class AgentDeviceSurface {
     return installed;
   }
 
+  /**
+   * Removes an app (default: the pinned one) from the session's device and
+   * resolves to whether it was installed; an app named by id that is not
+   * there is no error (a missing display name is `APP_NOT_INSTALLED`).
+   * Removing an app drops the nodes read from the session's screen, and
+   * removing the build `installApp` pinned without an `app.bundleId` unpins it, so
+   * `app.open()` asks for an install instead of launching an app that is gone.
+   */
+  async uninstallApp(app: string | undefined, signal: AbortSignal): Promise<boolean> {
+    const target = this.appArgument('uninstallApp', app);
+    const result = await this.command(`uninstall ${target}`, (client) => client.apps.uninstall({ ...this.selection(), app: target }), signal);
+    // agent-device resolves display names too: compare the id it removed, not only the string the caller passed.
+    const removed = typeof result['appId'] === 'string' ? result['appId'] : target;
+    // The identity may be a display name no id comparison matches, so it always goes: the next snapshot fills it again.
+    this.appIdentity = undefined;
+    this.launching = false;
+    this.screenReplaced();
+    if (target === this.installedApp || removed === this.installedApp) this.installedApp = undefined;
+    return result['wasInstalled'] === true;
+  }
+
+  /**
+   * Whether an app (default: the pinned one) is on the session's device,
+   * system apps included. `app` is a bundle id or package, or the exact
+   * name agent-device lists the app under.
+   */
+  async isAppInstalled(app: string | undefined, signal: AbortSignal): Promise<boolean> {
+    const target = this.appArgument('isAppInstalled', app);
+    const apps = await this.command('list apps', (client) => client.apps.list({ ...this.selection(), appsFilter: 'all' }), signal);
+    return apps.some((entry) => listsApp(entry, target));
+  }
+
+  /** The app a `device` method names, else the pinned one; neither is `INVALID_STATE`. */
+  private appArgument(method: string, app: string | undefined): string {
+    const target = app ?? this.pinnedApp;
+    if (target === undefined) {
+      throw invalidState(`${method} needs an app: pass a bundle id or package, pin one with the target's app.bundleId, or ${UNINSTALLED_BUILD}`);
+    }
+    return target;
+  }
+
   private async snapshot(signal: AbortSignal, interactiveOnly: boolean, budget: InputBudget): Promise<RawSnapshot> {
     let last: RawSnapshot = {};
     let captureMs = 0;
@@ -1131,6 +1189,7 @@ export class AgentDeviceSurface {
         keyboard: keyboardBand(raw.nodes ?? [], raw.keyboard, raw.viewport),
       }),
       keyboardVisible: keyboardShowing(raw),
+      originUnknown: raw.warnings?.includes(ORIGIN_WARNING) === true,
     };
     this.latestScreen = projected;
     const read = projected.viewport;
@@ -1281,6 +1340,7 @@ export class AgentDeviceSurface {
       node,
       controlRef: control.ref,
       keyboardVisible: snapshot.keyboardVisible,
+      originUnknown: snapshot.originUnknown,
       takesText: mayTakeText(entry.node),
       refsGeneration: snapshot.refsGeneration,
     };
@@ -1530,6 +1590,11 @@ export class AgentDeviceSurface {
         case 'swipe': {
           const rect = target.node.rect;
           if (rect === undefined) throw notActionable(`node ${target.id} has no bounds to swipe within`);
+          if (target.originUnknown) {
+            throw notActionable(
+              `${label} failed: the ${ORIGIN_UNKNOWN_BOUNDS} Nothing was sent. Swipe the screen with screen.swipe({ direction }), or between screen points with screen.swipe({ from, to }) not taken from those bounds.`,
+            );
+          }
           const stabilization = gestureStabilization(operation);
           const sent = await input.send(() => client.interactions.swipe({ ...swipeWithin(rect, action.direction, action.momentum), ...stabilization }));
           this.noteGesture(operation);
@@ -1649,9 +1714,9 @@ export class AgentDeviceSurface {
 
   /**
    * Hides the soft keyboard, so a control it covered can be reached.
-   * agent-device presses the keyboard's own dismiss key and refuses when the
-   * keyboard has none (an iPhone), because a touch outside the keyboard is a
-   * guess about the screen it never makes on a caller's behalf. The engine
+   * agent-device hides an Android keyboard itself and refuses every visible
+   * iOS one, because a touch on the screen is a guess about it that
+   * agent-device never makes on a caller's behalf. The engine
    * makes that guess, the way a user does and Maestro's `hideKeyboard` does,
    * in {@link dismissKeyboardByGesture}.
    */
@@ -1667,7 +1732,7 @@ export class AgentDeviceSurface {
   }
 
   /**
-   * A keyboard with no dismiss key goes the way a user sends it away: a short
+   * A keyboard agent-device refuses goes the way a user sends it away: a short
    * drag on the screen, which a scroll view turns into a dismissal, each
    * followed by a fresh look at whether the keyboard is still there.
    * Horizontal first: on a vertical scroll view it is no scroll, so React
@@ -1698,7 +1763,7 @@ export class AgentDeviceSurface {
       if (from === undefined) {
         throw new EngineError(
           'UNSUPPORTED_CAPABILITY',
-          `keyboard dismissal failed: the keyboard has no dismiss key, and every point above it (in a scroll view, when the screen has one) is on a control, so a drag would press one. ${KEYBOARD_ALTERNATIVES}`,
+          `keyboard dismissal failed: every point above the keyboard (in a scroll view, when the screen has one) is on a control, so a drag would press one. ${KEYBOARD_ALTERNATIVES}`,
           { retryable: false },
         );
       }
@@ -1711,7 +1776,7 @@ export class AgentDeviceSurface {
     }
     throw new EngineError(
       'UNSUPPORTED_CAPABILITY',
-      `keyboard dismissal failed: the keyboard has no dismiss key and stayed up through a horizontal and a vertical drag. ${KEYBOARD_ALTERNATIVES}`,
+      `keyboard dismissal failed: the keyboard stayed up through a horizontal and a vertical drag. ${KEYBOARD_ALTERNATIVES}`,
       { retryable: false },
     );
   }

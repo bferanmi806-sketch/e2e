@@ -278,10 +278,9 @@ class ScreenImpl implements Screen {
     const label = describeExpression(internals.expression);
     await this.context.steps.run('screen', 'screen.scrollUntilVisible', label, async () => {
       const deadline = engine.deadline(options?.timeout ?? 30_000);
-      const startedMs = Date.now();
       const notVisible = (cause?: unknown) =>
         new TestError('LOCATOR_NOT_FOUND', `target did not become visible while scrolling: ${label}`, {
-          details: locatorDetails(internals.expression, Date.now() - startedMs),
+          details: locatorDetails(internals.expression, deadline.elapsed()),
           ...(cause === undefined ? {} : { cause }),
         });
       const reads = engine.reads(deadline);
@@ -319,6 +318,18 @@ class ScreenImpl implements Screen {
 
   async debug(options?: ActionOptions): Promise<void> {
     console.log(await this.readTree('screen.debug', options));
+  }
+
+  /** Pauses the test. Call it on `screen`, since a pause affects the whole test. */
+  async pause(): Promise<void> {
+    if (this.scope !== undefined || this.wrap !== undefined) {
+      throw new TestError(
+        'INVALID_ARGUMENT',
+        'you can\'t call pause() on a locator or a frame, since a pause stops the whole test; call screen.pause()',
+      );
+    }
+
+    await this.context.steps.pause();
   }
 
   /** One observation of the whole screen, rendered; a locator or a frame refuses, since the tree is not scoped. */
@@ -636,7 +647,6 @@ class LocatorImpl extends ScreenImpl implements Locator {
     await this.context.steps.run('locator', 'locator.waitFor', `${this.label} → ${state}`, async () => {
       const { engine } = this.context;
       const deadline = engine.deadline(options?.timeout);
-      const startedMs = Date.now();
       const samples = new SampleHistory('waitFor', (text) => engine.redact(text));
       await samples.record(engine, () =>
         pollReads({
@@ -651,7 +661,7 @@ class LocatorImpl extends ScreenImpl implements Locator {
           },
           onTimeout: (cause) =>
             new TestError('LOCATOR_NOT_FOUND', `locator did not become ${state}: ${this.label}`, {
-              details: locatorDetails(this.expression, Date.now() - startedMs),
+              details: locatorDetails(this.expression, deadline.elapsed()),
               ...(cause === undefined ? {} : { cause }),
             }),
         }),

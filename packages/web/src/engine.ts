@@ -55,7 +55,14 @@ export function surfaceOf(engine: EngineHandle): PlaywrightLiveSurface | undefin
   return { page: () => surface.requirePage(), context: () => surface.requireContext() };
 }
 
-export function web(options: WebOptions = {}): EngineHandle<WebFixtures> {
+/**
+ * The handle `web()` returns. Declared here so a config's inferred type
+ * names this package: a project sees `@e2e-dev/core` only through its
+ * dependencies, and TypeScript cannot write that path in a declaration.
+ */
+export interface WebEngine extends EngineHandle<WebFixtures> {}
+
+export function web(options: WebOptions = {}): WebEngine {
   if ('allowedOrigins' in options) {
     throw new ConfigurationError(
       'INVALID_CONFIG',
@@ -87,6 +94,7 @@ export function web(options: WebOptions = {}): EngineHandle<WebFixtures> {
   if (options.basicAuth !== undefined) validateBasicAuth(options.basicAuth);
   if (options.credentialOrigins !== undefined) validateCredentialOrigins(options);
   if (options.testIdAttribute !== undefined) validateTestIdAttribute(options.testIdAttribute);
+  if (options.chromiumSandbox !== undefined) validateChromiumSandbox(options.chromiumSandbox);
   if (options.userAgent !== undefined) validateUserAgent(options.userAgent, options.headers);
   if (options.locale !== undefined) validateLocale(options.locale, options.headers);
   if (options.timezoneId !== undefined) validateTimezoneId(options.timezoneId);
@@ -169,6 +177,7 @@ export function web(options: WebOptions = {}): EngineHandle<WebFixtures> {
 /** Every option `web()` takes, kept equal to `WebOptions` by the compiler. */
 const WEB_OPTION_KEYS: readonly string[] = Object.keys({
   browser: true,
+  chromiumSandbox: true,
   viewport: true,
   screencast: true,
   connect: true,
@@ -426,6 +435,16 @@ function validateTestIdAttribute(attribute: unknown): void {
     throw new ConfigurationError(
       'INVALID_CONFIG',
       `web({ testIdAttribute }) must be an attribute name such as "data-testid", got ${JSON.stringify(attribute)}`,
+    );
+  }
+}
+
+/** Refuses a sandbox opt-out that is not a boolean, at config load. */
+function validateChromiumSandbox(chromiumSandbox: unknown): void {
+  if (typeof chromiumSandbox !== 'boolean') {
+    throw new ConfigurationError(
+      'INVALID_CONFIG',
+      `web({ chromiumSandbox }) must be a boolean, got ${JSON.stringify(chromiumSandbox)}`,
     );
   }
 }
