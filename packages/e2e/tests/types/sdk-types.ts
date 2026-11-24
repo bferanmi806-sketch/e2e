@@ -739,20 +739,13 @@ test.fixme('not yet', async () => {}) satisfies ReturnType<typeof test>;
 test.todo('not yet') satisfies ReturnType<typeof test>;
 // @ts-expect-error todo takes a title only, with no body
 test.todo('not yet', async () => {});
-type ReportTodo = Extract<Report['run']['results'][number], { skip: { cause: 'todo' } }>;
-declare const reportTodo: ReportTodo;
-reportTodo.kind satisfies 'test';
-reportTodo.expectedFailure satisfies undefined;
-reportTodo.attempts satisfies readonly [];
-// @ts-expect-error TODO result rows cannot be setup tests
-const todoKind: ReportTodo['kind'] = 'setup';
-void todoKind;
-// @ts-expect-error TODO result rows cannot belong to a serial group
-const todoSerialGroup: NonNullable<ReportTodo['serialGroupId']> = 'serial';
-void todoSerialGroup;
-// @ts-expect-error TODO result rows cannot have expected failures
-const todoExpectedFailure: NonNullable<ReportTodo['expectedFailure']> = { reason: 'todo' };
-void todoExpectedFailure;
+type ReportResult = Report['run']['results'][number];
+const todoResultSkip: NonNullable<ReportResult['skip']> = { cause: 'todo', reason: 'todo' };
+void todoResultSkip;
+function remappedReportResult(result: ReportResult): typeof result {
+  return { ...result, attempts: result.attempts.map((attempt) => ({ ...attempt, artifacts: [] })) };
+}
+void remappedReportResult;
 type ReportAttemptSkip = NonNullable<Report['run']['results'][number]['attempts'][number]['skip']>;
 // @ts-expect-error TODO is a registration-only cause and cannot describe an attempt
 const todoAttemptSkip: ReportAttemptSkip = { cause: 'todo', reason: 'todo' };

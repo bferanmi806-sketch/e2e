@@ -445,7 +445,7 @@ describe('foldLastRun', () => {
   });
 
   it('keeps the earlier verdict and serial group of a test the rerun never reached, so a later pass is flaky', () => {
-    const member = (status: 'failed' | 'skipped' | 'passed', group?: string, skip?: Exclude<Report['run']['results'][number]['skip'], { cause: 'todo' }>) =>
+    const member = (status: 'failed' | 'skipped' | 'passed', group?: string, skip?: NonNullable<Report['run']['serialGroups'][number]['attempts'][number]['members'][number]['skip']>) =>
       result({ title: ['wizard', 'step two'], status, ...(group === undefined ? {} : { serialGroupId: group }), ...(skip === undefined ? {} : { skip }) });
     const first = member('failed', 'g1');
     const failedRun = report({ status: 'failed', results: [first], serialGroups: [serialGroup('g1', first.testId, 'failed')] });

@@ -10,8 +10,6 @@ import type { FinishedRun, Report } from 'e2e';
 type ReportRun = Report['run'];
 type ReportResult = ReportRun['results'][number];
 type ReportAttempt = ReportResult['attempts'][number];
-type AttemptSkipInfo = NonNullable<ReportAttempt['skip']>;
-type AttemptReportResult = Extract<ReportResult, { skip?: AttemptSkipInfo | undefined }>;
 type ReportError = ReportRun['errors'][number];
 type ReportTarget = ReportRun['targets'][number];
 type ReportSerialGroup = ReportRun['serialGroups'][number];
@@ -20,7 +18,7 @@ type ArtifactKind = ReportAttempt['artifacts'][number]['kind'];
 const VALID = JSON.parse(
   readFileSync(new URL('../../../e2e/schema/fixtures/report-v1.valid.json', import.meta.url), 'utf8'),
 ) as Report;
-const BASE_RESULT = VALID.run.results[0] as AttemptReportResult;
+const BASE_RESULT = VALID.run.results[0]!;
 const BASE_ATTEMPT = BASE_RESULT.attempts[0] as ReportAttempt;
 const BASE_TARGET = VALID.run.targets[0] as ReportTarget;
 
@@ -65,7 +63,7 @@ export function result(input: {
   readonly target?: string;
   readonly status: ReportResult['status'];
   readonly attempts?: readonly ReportAttempt[];
-  readonly skip?: Exclude<ReportResult['skip'], { cause: 'todo' }>;
+  readonly skip?: ReportResult['skip'];
   readonly serialGroupId?: string;
   readonly selected?: boolean;
   /** Which `--repeat-each` run this is; the id tells repeats apart the way the runner's does. */

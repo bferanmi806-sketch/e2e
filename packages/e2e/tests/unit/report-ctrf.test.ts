@@ -446,7 +446,7 @@ describe('renderCtrfReport', () => {
       return { id, index: 0, status: 'passed', startedAt: AT, durationMs: 2000, members, artifacts: [], secondaryErrors: [], cleanup: 'complete', ...overrides };
     }
 
-    function memberResults(serial: ReportSerialGroup, statuses: [ReportResult['status'], ReportResult['status']], skip?: Exclude<ReportResult['skip'], { cause: 'todo' }>): ReportResult[] {
+    function memberResults(serial: ReportSerialGroup, statuses: [ReportResult['status'], ReportResult['status']], skip?: NonNullable<ReportSerialGroup['attempts'][number]['members'][number]['skip']>): ReportResult[] {
       return [
         reportResult({ id: 'result-1', testId: 'test-1', file: 'tests/checkout.e2e.ts', titlePath: ['checkout', 'adds'], serialGroupId: serial.id, status: statuses[0], attempts: [] }),
         reportResult({ id: 'result-2', testId: 'test-2', declarationIndex: 1, file: 'tests/checkout.e2e.ts', titlePath: ['checkout', 'pays'], serialGroupId: serial.id, status: statuses[1], attempts: [], ...(skip === undefined ? {} : { skip }) }),

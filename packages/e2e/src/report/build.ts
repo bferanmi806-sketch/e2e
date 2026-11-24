@@ -15,7 +15,7 @@ import { onBun } from '../internal/runtime.ts';
 import { projectRelativePath } from '@e2e-dev/core/lib/internal/source';
 import type { VcsInfo } from '../internal/vcs.ts';
 import { summarizeResults } from './summary.ts';
-import type { AttemptSkipInfo, TodoSkipInfo } from '@e2e-dev/core/lib/run/records';
+import type { AttemptSkipInfo, SkipInfo } from '@e2e-dev/core/lib/run/records';
 import { expectedFailureOf, someSkippedAfterFailure } from '@e2e-dev/core/lib/run/records';
 import { describeTarget, type TargetProvenance } from '@e2e-dev/core/lib/run/provision';
 import type { EngineSpiVersion } from '@e2e-dev/core/lib/engine/contract';
@@ -314,7 +314,7 @@ export interface ReportSerialGroup {
   attempts: readonly ReportSerialAttempt[];
 }
 
-interface ReportResultBase {
+export interface ReportResult {
   id: string;
   testId: string;
   kind: 'test' | 'setup';
@@ -348,27 +348,13 @@ interface ReportResultBase {
    * it in its headline and lists it under the filters fold.
    */
   selected: boolean;
+  serialGroupId?: string | undefined;
   status: ResultRecord['status'];
+  skip?: SkipInfo | undefined;
   /** Why the test was expected to fail, when its last attempt was marked `test.fail`; the attempt holds the failure. */
   expectedFailure?: { reason: string } | undefined;
+  attempts: readonly ReportAttempt[];
 }
-
-/** TODO is a registration-only skip and therefore has neither serial membership nor attempts. */
-export type ReportResult = ReportResultBase & (
-  | {
-      serialGroupId?: string | undefined;
-      skip?: AttemptSkipInfo | undefined;
-      attempts: readonly ReportAttempt[];
-    }
-  | {
-      kind: 'test';
-      status: 'skipped';
-      serialGroupId?: never;
-      expectedFailure?: never;
-      skip: TodoSkipInfo;
-      attempts: readonly [];
-    }
-);
 
 export interface ReportTarget {
   id: string;
@@ -631,9 +617,10 @@ function serializeSerialGroup(group: SerialGroupRecord): ReportSerialGroup {
 }
 
 function serializeResult(config: ResolvedConfig | undefined, result: ResultRecord): ReportResult {
-  const base = {
+  return {
     id: resultId(result.test.id, result.target.name, result.agent, result.repeat),
     testId: result.test.id,
+    kind: result.test.kind,
     declarationIndex: result.test.declarationIndex,
     titlePath: result.test.titlePath,
     file: result.test.file,
@@ -644,21 +631,10 @@ function serializeResult(config: ResolvedConfig | undefined, result: ResultRecor
     repeat: result.repeat,
     tags: result.test.tags,
     selected: result.selected,
-    status: result.status,
-  };
-  if (result.skip?.cause === 'todo') {
-    if (result.status !== 'skipped' || result.test.kind !== 'test' || result.serialGroupId !== undefined || result.attempts.length > 0 || expectedFailureOf(result) !== undefined) {
-      throw new Error('invalid TODO result record');
-    }
-    return { ...base, kind: 'test', status: 'skipped', skip: result.skip, attempts: [] };
-  }
-  const skip = result.status === 'skipped' ? result.skip : undefined;
-  return {
-    ...base,
-    kind: result.test.kind,
     serialGroupId: result.serialGroupId,
+    status: result.status,
+    skip: result.status === 'skipped' ? result.skip : undefined,
     ...expectedFailureField(result),
-    skip,
     attempts: result.serialGroupId !== undefined ? [] : result.attempts.map(serializeAttempt),
   };
 }

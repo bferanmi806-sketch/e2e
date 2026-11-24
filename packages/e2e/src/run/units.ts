@@ -213,7 +213,7 @@ export function interruptedInPhase(signal: AbortSignal, phase: string): string {
 function isAttemptSkipInfo(value: unknown): value is AttemptSkipInfo {
   if (typeof value !== 'object' || value === null) return false;
   const skip = value as { cause?: unknown; reason?: unknown };
-  return typeof skip.cause === 'string' && skip.cause !== 'todo' && typeof skip.reason === 'string';
+  return typeof skip.cause === 'string' && typeof skip.reason === 'string';
 }
 
 /**

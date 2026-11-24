@@ -15,10 +15,8 @@ import type {
   ReportTarget,
 } from '../../src/report/build.ts';
 
-export type OrdinaryReportResult = Extract<ReportResult, { skip?: Exclude<ReportResult['skip'], { cause: 'todo' }> }>;
-
-export type ReportResultOverrides = Partial<Omit<OrdinaryReportResult, 'skip' | 'attempts'>> & {
-  skip?: OrdinaryReportResult['skip'];
+export type ReportResultOverrides = Partial<Omit<ReportResult, 'skip' | 'attempts'>> & {
+  skip?: ReportResult['skip'];
   attempts?: readonly ReportAttempt[];
 };
 
@@ -76,7 +74,7 @@ export function reportAttempt(overrides: Partial<ReportAttempt> = {}): ReportAtt
   };
 }
 
-export function reportResult(overrides: ReportResultOverrides = {}): OrdinaryReportResult {
+export function reportResult(overrides: ReportResultOverrides = {}): ReportResult {
   return {
     id: 'result-1',
     testId: 'test-1',

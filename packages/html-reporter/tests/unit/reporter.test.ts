@@ -7,8 +7,6 @@ import { PAYLOAD_PLACEHOLDER, embedPayload, type ReportPayload } from '../../src
 import { htmlReporter, renderReport } from '../../src/reporter.ts';
 
 type ReportResult = Report['run']['results'][number];
-type AttemptSkipInfo = NonNullable<ReportResult['attempts'][number]['skip']>;
-type AttemptReportResult = Extract<ReportResult, { skip?: AttemptSkipInfo | undefined }>;
 
 const REPORT = JSON.parse(
   await readFile(new URL('../../../e2e/schema/fixtures/report-v1.valid.json', import.meta.url), 'utf8'),
@@ -116,7 +114,7 @@ describe('renderReport', () => {
     const [first, ...rest] = REPORT.run.results;
     if (first === undefined) throw new Error('the fixture has no results');
     if (first.skip?.cause === 'todo') throw new Error('the fixture result has no execution attempts');
-    const executable = first as AttemptReportResult;
+    const executable = first;
     const [attempt, ...later] = executable.attempts;
     if (attempt === undefined) throw new Error('the fixture result has no attempts');
     return { ...REPORT, run: { ...REPORT.run, serialGroups: [], results: [{ ...executable, attempts: [{ ...attempt, artifacts }, ...later] }, ...rest] } };

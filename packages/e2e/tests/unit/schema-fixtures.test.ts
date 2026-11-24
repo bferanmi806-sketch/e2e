@@ -277,6 +277,10 @@ describe.each(schemas)('%s schema', (name) => {
       todo.skip!.cause = 'explicit';
       expect(validate(report)).toBe(true);
       todo.skip!.cause = 'todo';
+      todo.skip!.reason = 'later';
+      expect(validate(report)).toBe(false);
+      todo.skip!.reason = 'todo';
+      expect(validate(report)).toBe(true);
       todo.skip!.cause = 'broken';
       expect(validate(report)).toBe(false);
     });
