@@ -38,6 +38,13 @@ const SELF_SKIP_CAUSES = ['explicit', 'fixme', 'todo'] as const;
 /** One of `SELF_SKIP_CAUSES`. */
 export type SelfSkipCause = (typeof SELF_SKIP_CAUSES)[number];
 
+/** The registration-only TODO result; it can never describe an attempt. */
+export type TodoSkipInfo = SkipDetail & {
+  readonly cause: 'todo';
+  readonly reason: 'todo';
+  readonly filter?: never;
+};
+
 /** Why a pair did not run; only a `filtered` one can name the test filter that left it out. */
 export type SkipInfo =
   | (SkipDetail & {
@@ -45,9 +52,10 @@ export type SkipInfo =
       /** The name of the test filter that left the test out; absent when the selection did, as with `--tag`. */
       readonly filter?: string;
     })
+  | TodoSkipInfo
   | (SkipDetail & {
       readonly cause:
-        | SelfSkipCause
+        | Exclude<SelfSkipCause, 'todo'>
         | 'platform-unavailable'
         | 'setup-failed'
         | 'serial-predecessor-failed'
@@ -57,6 +65,9 @@ export type SkipInfo =
         | 'time-limit';
       readonly filter?: never;
     });
+
+/** Skip causes that can describe an execution attempt or serial result. */
+export type AttemptSkipInfo = Exclude<SkipInfo, TodoSkipInfo>;
 
 /** What a skip says whatever its cause: why, and the id of a related test, such as the setup that failed. */
 interface SkipDetail {
@@ -150,7 +161,7 @@ export interface AttemptRecord {
    * when `status` is `skipped`; also on a failed attempt whose body skipped
    * after a soft failure, or whose teardown failed after the skip.
    */
-  skip?: SkipInfo;
+  skip?: AttemptSkipInfo;
   /** Set when the attempt was marked expected to fail (`test.fail`); see `settleExpectedFailure`. */
   expectedFailure?: ExpectedFailureInfo;
   secondaryErrors: SerializedError[];
@@ -179,7 +190,7 @@ export interface SerialMemberRecord {
    * runner (a failed predecessor or hook, an interrupt). Also on a failed
    * member that skipped itself first; see `AttemptRecord.skip`.
    */
-  skip?: SkipInfo;
+  skip?: AttemptSkipInfo;
   secondaryErrors: SerializedError[];
 }
 
@@ -219,7 +230,7 @@ export interface SerialGroupRecord {
   repeat: number;
   memberTestIds: string[];
   status: 'passed' | 'flaky' | 'failed' | 'timed-out' | 'interrupted' | 'skipped';
-  skip?: SkipInfo;
+  skip?: AttemptSkipInfo;
   attempts: SerialAttemptRecord[];
 }
 

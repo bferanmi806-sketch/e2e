@@ -775,20 +775,16 @@ function createTestAPI(chain: readonly FixtureDefinition[]): TestAPI {
           'set skip on the serial describe instead',
       );
     }
-    const options = skip === 'fixme'
-      ? { ...given, skip: fixmeReason() }
-      : skip === 'todo'
-        ? { ...given, skip: 'todo' }
-        : skip === true
-          ? { ...given, skip: typeof given.skip === 'string' ? given.skip : true }
-          : given;
-    const mode: TestMode = options.only === true
-      ? 'only'
-      : skip === 'fixme'
-        ? 'fixme'
-        : skip === 'todo'
-          ? 'todo'
-          : options.skip !== undefined && options.skip !== false ? 'skip' : 'normal';
+    let options = given;
+    if (skip === 'fixme') options = { ...given, skip: fixmeReason() };
+    else if (skip === 'todo') options = { ...given, skip: 'todo' };
+    else if (skip === true) options = { ...given, skip: typeof given.skip === 'string' ? given.skip : true };
+
+    let mode: TestMode;
+    if (options.only === true) mode = 'only';
+    else if (skip === 'fixme' || skip === 'todo') mode = skip;
+    else if (options.skip !== undefined && options.skip !== false) mode = 'skip';
+    else mode = 'normal';
     return collector.registerTest('test', mode, title, options, [], fn, chain, namedBy);
   };
   /** The `test()` call forms. */

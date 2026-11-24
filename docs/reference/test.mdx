@@ -144,9 +144,14 @@ test.todo('add checkout coverage');
 ```
 
 It is reported as `skipped` with `skip.cause` and `skip.reason` set to `todo`.
-It does not run and has no attempts. A TODO-only selection fails with
-`NO_TESTS`, like a selection containing only other skipped tests. A TODO
-registration inside a serial group is a `COLLECTION_ERROR`.
+It does not run and has no attempts. By default, selecting only TODO tests
+fails with `NO_TESTS`; pass `--pass-with-no-tests` to allow the empty
+selection.
+
+| Throws | When |
+| --- | --- |
+| `COLLECTION_ERROR` | `test.todo` is called with a body. |
+| `COLLECTION_ERROR` | Registered inside a serial group. |
 
 #### `test.fixme`
 

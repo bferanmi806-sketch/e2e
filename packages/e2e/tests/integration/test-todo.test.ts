@@ -46,6 +46,33 @@ test.todo('future');
     }
   });
 
+  it('keeps an out-of-shard TODO as an unselected TODO row', async () => {
+    const source = { 'tests/todo.e2e.ts': `import { test } from 'e2e';\ntest.todo('future');\n` };
+    const rows = [];
+    for (const index of [1, 2]) {
+      const { outcome, project } = await runProject(source, {
+        runOptions: { shard: { index, total: 2 }, passWithNoTests: true },
+      });
+      try {
+        const todo = resultByTitle(outcome, 'future');
+        expect(outcome.exitCode).toBe(0);
+        assertValidReport(outcome.report);
+        rows.push(todo);
+      } finally {
+        project.cleanup();
+      }
+    }
+
+    expect(rows.map((todo) => todo.selected).sort()).toEqual([false, true]);
+    expect(rows.find((todo) => !todo.selected)).toMatchObject({
+      status: 'skipped',
+      selected: false,
+      attempts: [],
+      skip: { cause: 'todo', reason: 'todo', otherShard: true },
+    });
+    expect(rows.find((todo) => todo.selected)?.skip).not.toHaveProperty('otherShard');
+  });
+
   it('allows a TODO-only selection with passWithNoTests', async () => {
     const { outcome, project } = await runProject(
       { 'tests/todo.e2e.ts': `import { test } from 'e2e';\ntest.todo('future');\n` },

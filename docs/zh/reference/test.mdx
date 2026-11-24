@@ -126,8 +126,8 @@ test.todo('add checkout coverage');
 ```
 
 它会以 `skipped` 报告，`skip.cause` 和 `skip.reason` 均为 `todo`。它不会运行，也没有
-attempt。只选择 TODO 测试会导致 `NO_TESTS`，与只选择其他已跳过测试相同。在串行组内
-注册 TODO 会产生 `COLLECTION_ERROR`。
+attempt。默认情况下，只选择 TODO 测试会导致 `NO_TESTS`。使用 `--pass-with-no-tests`
+可以允许空选择。在串行组内注册 TODO 会产生 `COLLECTION_ERROR`。
 
 #### `test.fixme`
 

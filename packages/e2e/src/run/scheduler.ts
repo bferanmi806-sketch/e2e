@@ -9,7 +9,7 @@
  */
 
 import type { TestTargetPair } from '../collect/select.ts';
-import type { SkipInfo } from '@e2e-dev/core/lib/run/records';
+import type { AttemptSkipInfo } from '@e2e-dev/core/lib/run/records';
 import type { ResolvedTarget } from '@e2e-dev/core/lib/config/resolve';
 import type { AiTraceSnapshot } from '@e2e-dev/core/lib/internal/ai-trace';
 import type { DebugSnapshot } from '@e2e-dev/core/lib/internal/debug';
@@ -141,7 +141,7 @@ export interface TargetFailure {
 const MAX_INIT_FAILURES = 2;
 
 /** Why a pair of a target whose workers cannot boot never ran. */
-const WORKER_START_FAILED: SkipInfo = {
+const WORKER_START_FAILED: AttemptSkipInfo = {
   cause: 'infrastructure-unavailable',
   reason: 'worker process failed to start',
 };
@@ -161,7 +161,7 @@ export async function runUnits(options: RunUnitsOptions): Promise<ReadonlySet<st
 
 interface TargetUnavailable {
   readonly kind: 'worker-start' | 'app-exit';
-  readonly skip: SkipInfo;
+  readonly skip: AttemptSkipInfo;
 }
 
 interface TargetState {
@@ -407,7 +407,7 @@ class Scheduler {
    * stopped the run; from then on the scheduler interrupts as if the signal
    * had fired.
    */
-  private stopSkip: SkipInfo | undefined;
+  private stopSkip: AttemptSkipInfo | undefined;
   /** The workers alive when the first one died of an interrupt signal before it was ready; see `excusedSignal`. */
   private signalledWave: Set<SchedulerWorker> | undefined;
   /** Steps waiting for `beforeStep`, by hold id: the worker holding each, and what ends its wait. */
@@ -469,7 +469,7 @@ class Scheduler {
    * the loop wakes to interrupt the workers the way the interrupt signal
    * would.
    */
-  private stopEarly(skip: SkipInfo): void {
+  private stopEarly(skip: AttemptSkipInfo): void {
     this.stopSkip = skip;
     for (const state of this.targets.values()) this.skipQueues(state, skip);
     this.wakeUp();
@@ -481,7 +481,7 @@ class Scheduler {
   }
 
   /** Empties a target's queues, reporting every pair they held as skipped for `skip`. */
-  private skipQueues(state: TargetState, skip: SkipInfo): void {
+  private skipQueues(state: TargetState, skip: AttemptSkipInfo): void {
     const units = [...state.setupQueue, ...state.fileQueue];
     state.setupQueue.length = 0;
     state.fileQueue.length = 0;
@@ -733,7 +733,7 @@ class Scheduler {
   }
 
   /** Interrupts one worker and reports any unit it has not started. */
-  private interruptWorker(worker: SchedulerWorker, skip: SkipInfo | undefined): void {
+  private interruptWorker(worker: SchedulerWorker, skip: AttemptSkipInfo | undefined): void {
     this.cancelHolds('the run was interrupted', (_, holder) => holder === worker);
     worker.runner.send({ type: 'interrupt', ...(skip === undefined ? {} : { skip }) });
     if (worker.state === 'busy') {

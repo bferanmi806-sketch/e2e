@@ -739,6 +739,22 @@ test.fixme('not yet', async () => {}) satisfies ReturnType<typeof test>;
 test.todo('not yet') satisfies ReturnType<typeof test>;
 // @ts-expect-error todo takes a title only, with no body
 test.todo('not yet', async () => {});
+type ReportTodo = Extract<Report['run']['results'][number], { skip: { cause: 'todo' } }>;
+declare const reportTodo: ReportTodo;
+reportTodo.kind satisfies 'test';
+reportTodo.expectedFailure satisfies undefined;
+reportTodo.attempts satisfies readonly [];
+// @ts-expect-error TODO result rows cannot be setup tests
+const todoKind: ReportTodo['kind'] = 'setup';
+// @ts-expect-error TODO result rows cannot belong to a serial group
+const todoSerialGroup: NonNullable<ReportTodo['serialGroupId']> = 'serial';
+// @ts-expect-error TODO result rows cannot have expected failures
+const todoExpectedFailure: NonNullable<ReportTodo['expectedFailure']> = { reason: 'todo' };
+type ReportAttemptSkip = NonNullable<Report['run']['results'][number]['attempts'][number]['skip']>;
+// @ts-expect-error TODO is a registration-only cause and cannot describe an attempt
+const todoAttemptSkip: ReportAttemptSkip = { cause: 'todo', reason: 'todo' };
+// @ts-expect-error a TODO report row cannot carry an execution attempt
+const todoAttempts: ReportTodo['attempts'] = [{} as Report['run']['results'][number]['attempts'][number]];
 void (test.fixme(true, 'flaky on webkit') satisfies void);
 void (test.fixme('flaky on webkit') satisfies void);
 void (test.fixme() satisfies void);

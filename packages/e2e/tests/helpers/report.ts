@@ -15,6 +15,13 @@ import type {
   ReportTarget,
 } from '../../src/report/build.ts';
 
+export type OrdinaryReportResult = Extract<ReportResult, { skip?: Exclude<ReportResult['skip'], { cause: 'todo' }> }>;
+
+export type ReportResultOverrides = Partial<Omit<OrdinaryReportResult, 'skip' | 'attempts'>> & {
+  skip?: OrdinaryReportResult['skip'];
+  attempts?: readonly ReportAttempt[];
+};
+
 export const REPORT_AT = '2026-01-01T00:00:00.000Z';
 
 const SOURCE = { file: 'tests/auth.e2e.ts', line: 3, column: 1 };
@@ -69,7 +76,7 @@ export function reportAttempt(overrides: Partial<ReportAttempt> = {}): ReportAtt
   };
 }
 
-export function reportResult(overrides: Partial<ReportResult> = {}): ReportResult {
+export function reportResult(overrides: ReportResultOverrides = {}): OrdinaryReportResult {
   return {
     id: 'result-1',
     testId: 'test-1',

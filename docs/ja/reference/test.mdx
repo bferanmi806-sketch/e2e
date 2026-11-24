@@ -126,9 +126,9 @@ test.todo('add checkout coverage');
 ```
 
 `skipped` として報告され、`skip.cause` と `skip.reason` は `todo` です。
-実行されず、attempt もありません。TODO だけを選択すると、他のスキップされた
-テストだけの場合と同様に `NO_TESTS` で失敗します。シリアルグループ内で
-登録すると `COLLECTION_ERROR` になります。
+実行されず、attempt もありません。既定では TODO テストだけを選択すると
+`NO_TESTS` で失敗します。空の選択を許可するには `--pass-with-no-tests` を指定します。
+シリアルグループ内で登録すると `COLLECTION_ERROR` になります。
 
 #### `test.fixme`
 

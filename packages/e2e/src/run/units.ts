@@ -9,7 +9,7 @@ import path from 'node:path';
 import type { Collection } from '../collect/collect.ts';
 import { testIdentity } from '../collect/collect.ts';
 import type { Selection, TestTargetPair } from '../collect/select.ts';
-import type { SkipInfo } from '@e2e-dev/core/lib/run/records';
+import type { AttemptSkipInfo } from '@e2e-dev/core/lib/run/records';
 import type { ResolvedTarget } from '@e2e-dev/core/lib/config/resolve';
 import type { SerializedError } from '@e2e-dev/core/lib/internal/errors';
 import type { AttemptRecord, ResultRecord, ResultStatus } from '@e2e-dev/core/lib/run/records';
@@ -149,7 +149,7 @@ export function plannedSlots(plan: TargetWorkPlan, runWorkers: number): number {
 }
 
 /** Skip info for a pair whose session-producing setup did not pass. */
-export function setupFailedSkip(session: string, setupTestId: string): SkipInfo {
+export function setupFailedSkip(session: string, setupTestId: string): AttemptSkipInfo {
   return {
     cause: 'setup-failed',
     reason: `setup for session "${session}" failed`,
@@ -158,7 +158,7 @@ export function setupFailedSkip(session: string, setupTestId: string): SkipInfo 
 }
 
 /** Skip info for runnable work an interrupt cancelled before it started. */
-export const INTERRUPTED_BEFORE_START: SkipInfo = {
+export const INTERRUPTED_BEFORE_START: AttemptSkipInfo = {
   cause: 'infrastructure-unavailable',
   reason: 'run interrupted before execution',
 };
@@ -169,7 +169,7 @@ export function countsTowardFailureLimit(status: ResultRecord['status']): boolea
 }
 
 /** Skip info for the work a run stopped at its failure limit never started. */
-export function failureLimitSkip(failures: number, limit: number): SkipInfo {
+export function failureLimitSkip(failures: number, limit: number): AttemptSkipInfo {
   return {
     cause: 'failure-limit',
     reason: `run stopped after ${failures} ${failures === 1 ? 'failure' : 'failures'} (--max-failures ${limit})`,
@@ -183,7 +183,7 @@ export interface TimeLimit {
 }
 
 /** Skip info for the work a run stopped at its time limit never started. */
-export function timeLimitSkip(limit: TimeLimit): SkipInfo {
+export function timeLimitSkip(limit: TimeLimit): AttemptSkipInfo {
   return {
     cause: 'time-limit',
     reason: `run stopped at its time limit of ${limit.ms} ms (${limit.source})`,
@@ -195,9 +195,9 @@ export function timeLimitSkip(limit: TimeLimit): SkipInfo {
  * interrupt carried as its reason (a run stopped at its failure limit says
  * so), else the plain interrupt.
  */
-export function interruptedSkip(signal: AbortSignal, fallback: SkipInfo = INTERRUPTED_BEFORE_START): SkipInfo {
+export function interruptedSkip(signal: AbortSignal, fallback: AttemptSkipInfo = INTERRUPTED_BEFORE_START): AttemptSkipInfo {
   const reason: unknown = signal.reason;
-  return isSkipInfo(reason) ? reason : fallback;
+  return isAttemptSkipInfo(reason) ? reason : fallback;
 }
 
 /**
@@ -207,11 +207,13 @@ export function interruptedSkip(signal: AbortSignal, fallback: SkipInfo = INTERR
 export function interruptedInPhase(signal: AbortSignal, phase: string): string {
   const reason: unknown = signal.reason;
   const message = `run interrupted in phase ${phase}`;
-  return isSkipInfo(reason) ? `${message}: ${reason.reason}` : message;
+  return isAttemptSkipInfo(reason) ? `${message}: ${reason.reason}` : message;
 }
 
-function isSkipInfo(value: unknown): value is SkipInfo {
-  return typeof value === 'object' && value !== null && typeof (value as SkipInfo).cause === 'string' && typeof (value as SkipInfo).reason === 'string';
+function isAttemptSkipInfo(value: unknown): value is AttemptSkipInfo {
+  if (typeof value !== 'object' || value === null) return false;
+  const skip = value as { cause?: unknown; reason?: unknown };
+  return typeof skip.cause === 'string' && skip.cause !== 'todo' && typeof skip.reason === 'string';
 }
 
 /**
@@ -265,7 +267,7 @@ export function nonRunResult(pair: TestTargetPair): ResultRecord {
 }
 
 /** Result for a runnable pair the run never started. */
-export function unstartedResult(pair: TestTargetPair, skip: SkipInfo): ResultRecord {
+export function unstartedResult(pair: TestTargetPair, skip: AttemptSkipInfo): ResultRecord {
   return pairResult(pair, {
     status: 'skipped',
     selected: pair.disposition === 'run',

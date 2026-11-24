@@ -11,7 +11,7 @@ import { canonicalDigest, timestamp, uuidv7 } from '@e2e-dev/core/lib/internal/i
 import type { CollectedTest } from '../collect/collect.ts';
 import { groupTitles, type RegisteredTest } from '../collect/registry.ts';
 import { pairRecordings, type TestTargetPair } from '../collect/select.ts';
-import type { SkipInfo } from '@e2e-dev/core/lib/run/records';
+import type { AttemptSkipInfo } from '@e2e-dev/core/lib/run/records';
 import type { ResolvedTarget } from '@e2e-dev/core/lib/config/resolve';
 import type { ArtifactStore } from '@e2e-dev/core/lib/types';
 import { attemptSegments, createAttemptArtifacts, resultSegment } from '@e2e-dev/core/lib/run/artifacts';
@@ -184,7 +184,7 @@ function memberResults(group: SerialGroupRecord, members: readonly TestTargetPai
   return members.map((member) => {
     const memberRecord = verdicts.get(member.test.id);
     let status: ResultStatus;
-    let skip: SkipInfo | undefined;
+    let skip: AttemptSkipInfo | undefined;
     // A member that skipped itself stays skipped whatever the group did: a
     // passing group says the rest of the flow held, not that this member ran.
     if (memberRecord?.status === 'skipped') {
@@ -278,7 +278,7 @@ export class SerialGroupProgress {
     const next = this.currentMembers.length;
     const wasRunning = this.running !== undefined && this.running === members[next]?.test.id;
     const record = this.attemptInFlight(wasRunning ? status : 'failed', error);
-    const skip: SkipInfo = wasRunning
+    const skip: AttemptSkipInfo = wasRunning
       ? predecessorFailed(next)
       : { cause: 'infrastructure-unavailable', reason: 'worker process exited during this group attempt' };
     for (const [memberIndex, member] of members.entries()) {
@@ -299,7 +299,7 @@ export class SerialGroupProgress {
    * keep their records and the rest skip with `skip`. The verdict is the one
    * those attempts reach, as for a retry the interrupt cut short.
    */
-  interrupted(members: readonly TestTargetPair[], target: ResolvedTarget, skip: SkipInfo): SettledSerialGroup | undefined {
+  interrupted(members: readonly TestTargetPair[], target: ResolvedTarget, skip: AttemptSkipInfo): SettledSerialGroup | undefined {
     if (!this.inFlight) return this.finished.length === 0 ? undefined : this.settled(this.finished, members, target);
     const record = this.attemptInFlight('interrupted', undefined);
     for (const [memberIndex, member] of members.entries()) {
@@ -427,7 +427,7 @@ async function runSerialAttempt(
     return finishedSerialAttempt(record, false);
   }
 
-  let skipRemaining: SkipInfo | undefined;
+  let skipRemaining: AttemptSkipInfo | undefined;
   let hookFailure: SerializedError | undefined;
   for (let memberIndex = 0; memberIndex < members.length; memberIndex += 1) {
     const member = members[memberIndex]!;
@@ -581,14 +581,14 @@ function isFailedMember(member: SerialMemberRecord): member is SerialMemberRecor
 }
 
 /** Why a member the run's interrupt kept from running in this group attempt skipped. */
-function interruptedMemberSkip(interruptSignal: AbortSignal): SkipInfo {
+function interruptedMemberSkip(interruptSignal: AbortSignal): AttemptSkipInfo {
   return interruptedSkip(interruptSignal, {
     cause: 'infrastructure-unavailable',
     reason: 'run interrupted during this group attempt',
   });
 }
 
-function predecessorFailed(memberIndex: number): SkipInfo {
+function predecessorFailed(memberIndex: number): AttemptSkipInfo {
   return {
     cause: 'serial-predecessor-failed',
     reason: `member ${memberIndex} failed in this group attempt`,
@@ -599,7 +599,7 @@ function skippedMember(
   attemptId: string,
   index: number,
   testId: string,
-  skip: SkipInfo,
+  skip: AttemptSkipInfo,
 ): SerialMemberRecord {
   return {
     id: `${attemptId}:member:${index}`,

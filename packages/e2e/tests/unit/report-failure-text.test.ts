@@ -10,7 +10,7 @@ import type { ReportAttempt, ReportResult, ReportStep } from '../../src/report/b
 import type { ReportSerialGroup } from '../../src/report/build.ts';
 import { attemptsLine, detailLines, evidenceOf, failedStepOf, failureSource, lastTurnLines, renderTracePage, screenLines, toldAttempt } from '../../src/report/failure-text.ts';
 import { outcome } from '../../src/report/outcome.ts';
-import { reportAttempt, reportDocument, reportError, reportResult, reportStep, reportTarget } from '../helpers/report.ts';
+import { reportAttempt, reportDocument, reportError, reportResult, reportStep, reportTarget, type ReportResultOverrides } from '../helpers/report.ts';
 
 const UNKNOWN = { file: 'unknown', line: 1, column: 1 };
 const NO_GROUPS = new Map<string, ReportSerialGroup>();
@@ -25,7 +25,7 @@ function failed(overrides: Partial<ReportAttempt> = {}): ReportAttempt {
   return reportAttempt({ status: 'failed', error, steps: [step({ index: 0 }), step({ index: 1, status: 'failed', error })], ...overrides });
 }
 
-function result(overrides: Partial<ReportResult> = {}): ReportResult {
+function result(overrides: ReportResultOverrides = {}): ReportResult {
   return reportResult({ status: 'failed', attempts: [failed()], ...overrides });
 }
 

@@ -695,13 +695,14 @@ function classifyPair(
   }
 
   if (options.skipReason !== undefined) {
+    let skip: SkipInfo;
+    if (test.mode === 'todo') skip = { cause: 'todo', reason: 'todo' };
+    else if (test.mode === 'fixme') skip = { cause: 'fixme', reason: options.skipReason };
+    else skip = { cause: 'explicit', reason: options.skipReason };
     return {
       ...base,
       disposition: 'skip',
-      skip: {
-        cause: test.mode === 'fixme' ? 'fixme' : test.mode === 'todo' ? 'todo' : 'explicit',
-        reason: options.skipReason,
-      },
+      skip,
     };
   }
 

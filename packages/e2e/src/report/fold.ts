@@ -48,7 +48,7 @@ function testKey(result: ReportResult): string {
  * none, whatever it was before.
  */
 function foldRerun(current: ReportResult, history: readonly ReportResult[]): ReportResult {
-  if (history.length === 0) return current;
+  if (current.skip?.cause === 'todo' || history.length === 0) return current;
   const before = history.toSorted((a, b) => a.repeat - b.repeat);
   const failure = before.findLast((result) => FAILED_STATUSES.has(result.status));
   const wasFlaky = before.some((result) => result.status === 'flaky');

@@ -256,26 +256,53 @@ describe.each(schemas)('%s schema', (name) => {
 
     it('accepts a selected todo result without attempts', () => {
       const report = readJson('fixtures', 'report-v1.valid.json') as {
-        run: { results: { selected?: boolean; status: string; skip?: { cause: string; reason: string }; attempts: unknown[] }[] };
+        run: { results: { kind?: string; selected?: boolean; status: string; serialGroupId?: string; expectedFailure?: unknown; skip?: { cause: string; reason: string }; attempts: unknown[] }[] };
       };
       const todo = report.run.results[5]!;
       expect(todo).toMatchObject({ selected: true, status: 'skipped', attempts: [], skip: { cause: 'todo', reason: 'todo' } });
       expect(validate(report)).toBe(true);
+      todo.kind = 'setup';
+      expect(validate(report)).toBe(false);
+      todo.kind = 'test';
+      expect(validate(report)).toBe(true);
+      todo.serialGroupId = 'group-1';
+      expect(validate(report)).toBe(false);
+      delete todo.serialGroupId;
+      todo.expectedFailure = { reason: 'todo' };
+      expect(validate(report)).toBe(false);
+      delete todo.expectedFailure;
+      expect(validate(report)).toBe(true);
+      todo.skip!.cause = 'fixme';
+      expect(validate(report)).toBe(true);
       todo.skip!.cause = 'explicit';
       expect(validate(report)).toBe(true);
+      todo.skip!.cause = 'todo';
       todo.skip!.cause = 'broken';
       expect(validate(report)).toBe(false);
     });
 
-    it('takes fixme and explicit as attempt-level skip causes, and no unknown cause', () => {
+    it('rejects todo as an attempt skip cause', () => {
       const report = readJson('fixtures', 'report-v1.valid.json') as {
         run: { results: { attempts: { skip?: { cause: string } }[] }[] };
       };
       const skip = report.run.results[1]!.attempts[0]!.skip!;
       expect(skip.cause).toBe('fixme');
+      skip.cause = 'todo';
+      expect(validate(report)).toBe(false);
+      skip.cause = 'fixme';
+      expect(validate(report)).toBe(true);
       skip.cause = 'explicit';
       expect(validate(report)).toBe(true);
       skip.cause = 'broken';
+      expect(validate(report)).toBe(false);
+    });
+
+    it('rejects a todo result that carries an attempt', () => {
+      const report = readJson('fixtures', 'report-v1.valid.json') as {
+        run: { results: { attempts: unknown[] }[] };
+      };
+      const todo = report.run.results[5]!;
+      todo.attempts.push(structuredClone(report.run.results[1]!.attempts[0]!));
       expect(validate(report)).toBe(false);
     });
 
@@ -292,7 +319,7 @@ describe.each(schemas)('%s schema', (name) => {
         const errors = (validate.errors ?? []).filter((error) => error.instancePath === `/run/results/${index}/skip/cause`);
         return [...new Set(errors.map((error) => error.schemaPath))];
       };
-      expect(causeRules()).toEqual(['#/$defs/skip/allOf/0/then/properties/cause/const']);
+      expect(causeRules()).toEqual(['#/$defs/skipShape/allOf/0/then/properties/cause/const']);
       delete skip['filter'];
       expect(causeRules()).toEqual([]);
     });
@@ -308,7 +335,7 @@ describe.each(schemas)('%s schema', (name) => {
       expect(validate.errors).toEqual(expect.arrayContaining([
         expect.objectContaining({
           instancePath: `/run/results/${index}/skip/cause`,
-          schemaPath: '#/$defs/skip/allOf/0/then/properties/cause/const',
+          schemaPath: '#/$defs/skipShape/allOf/0/then/properties/cause/const',
           keyword: 'const',
         }),
       ]));

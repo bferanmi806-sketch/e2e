@@ -431,14 +431,12 @@
         }
       ]
     },
-    "skip": {
+    "skipShape": {
       "type": "object",
       "additionalProperties": false,
       "required": ["cause", "reason"],
       "properties": {
-        "cause": {
-          "enum": ["explicit", "fixme", "todo", "filtered", "platform-unavailable", "setup-failed", "serial-predecessor-failed", "hook-failed", "infrastructure-unavailable", "failure-limit", "time-limit"]
-        },
+        "cause": { "type": "string" },
         "reason": { "type": "string", "maxLength": 8192 },
         "relatedId": { "type": "string", "minLength": 1 },
         "filter": { "description": "The name of the test filter that left the test out; only with cause filtered.", "type": "string", "minLength": 1, "maxLength": 256 },
@@ -446,6 +444,22 @@
       },
       "allOf": [
         { "if": { "required": ["filter"] }, "then": { "properties": { "cause": { "const": "filtered" } } } }
+      ]
+    },
+    "skip": {
+      "allOf": [
+        { "$ref": "#/$defs/skipShape" },
+        { "properties": { "cause": { "enum": ["explicit", "fixme", "filtered", "platform-unavailable", "setup-failed", "serial-predecessor-failed", "hook-failed", "infrastructure-unavailable", "failure-limit", "time-limit"] } } }
+      ]
+    },
+    "resultSkip": {
+      "allOf": [
+        { "$ref": "#/$defs/skipShape" },
+        { "properties": { "cause": { "enum": ["explicit", "fixme", "todo", "filtered", "platform-unavailable", "setup-failed", "serial-predecessor-failed", "hook-failed", "infrastructure-unavailable", "failure-limit", "time-limit"] } } },
+        {
+          "if": { "properties": { "cause": { "const": "todo" } }, "required": ["cause"] },
+          "then": { "properties": { "reason": { "const": "todo" } } }
+        }
       ]
     },
     "serialMember": {
@@ -563,7 +577,7 @@
         "selected": { "type": "boolean" },
         "serialGroupId": { "type": "string", "minLength": 1 },
         "status": { "enum": ["passed", "flaky", "failed", "timed-out", "interrupted", "skipped"] },
-        "skip": { "$ref": "#/$defs/skip" },
+        "skip": { "$ref": "#/$defs/resultSkip" },
         "expectedFailure": {
           "description": "Why the test was expected to fail, when its last attempt was marked test.fail. Absent in older reports.",
           "type": "object",
@@ -594,7 +608,7 @@
             "then": {
               "required": ["skip"],
               "properties": {
-                "skip": { "$ref": "#/$defs/skip" },
+                "skip": { "$ref": "#/$defs/resultSkip" },
                 "attempts": {
                   "type": "array",
                   "items": { "$ref": "#/$defs/attempt" }
@@ -624,6 +638,20 @@
         {
           "if": { "required": ["serialGroupId"] },
           "then": { "properties": { "expectedFailure": false } }
+        },
+        {
+          "if": {
+            "properties": { "skip": { "properties": { "cause": { "const": "todo" } }, "required": ["cause"] } },
+            "required": ["skip"]
+          },
+          "then": {
+            "properties": {
+              "kind": { "const": "test" },
+              "serialGroupId": false,
+              "expectedFailure": false,
+              "attempts": { "type": "array", "maxItems": 0 }
+            }
+          }
         }
       ]
     },

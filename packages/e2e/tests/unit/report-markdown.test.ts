@@ -37,7 +37,7 @@ function named(input: {
   readonly target?: string;
   readonly status: ReportResult['status'];
   readonly attempts?: readonly ReportAttempt[];
-  readonly skip?: ReportResult['skip'];
+  readonly skip?: Exclude<ReportResult['skip'], { cause: 'todo' }>;
   readonly serialGroupId?: string;
 }): ReportResult {
   const titlePath = typeof input.title === 'string' ? [input.title] : [...input.title];

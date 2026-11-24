@@ -12,14 +12,16 @@ import { currentAttempt } from '@e2e-dev/core/lib/expect/attempt';
 import { CollectionError, TestError } from '@e2e-dev/core/lib/internal/errors';
 import type { SelfSkipCause } from '@e2e-dev/core/lib/run/records';
 
+type RuntimeSkipCause = Exclude<SelfSkipCause, 'todo'>;
+
 const runtimeSkipBrand: unique symbol = Symbol.for('e2e.runtimeSkip.v1');
 
 class RuntimeSkip {
   readonly [runtimeSkipBrand] = true as const;
   readonly reason: string;
-  readonly cause: SelfSkipCause;
+  readonly cause: RuntimeSkipCause;
 
-  constructor(reason: string | undefined, cause: SelfSkipCause) {
+  constructor(reason: string | undefined, cause: RuntimeSkipCause) {
     this.reason = reason === undefined || reason.trim() === '' ? 'skipped' : reason;
     this.cause = cause;
   }
@@ -29,7 +31,7 @@ class RuntimeSkip {
  * The skip cause a runtime skip reports: its own, or `explicit` for one with
  * none, which a copy of this package from before `test.fixme` throws.
  */
-export function runtimeSkipCause(skip: CaughtRuntimeSkip): SelfSkipCause {
+export function runtimeSkipCause(skip: CaughtRuntimeSkip): RuntimeSkipCause {
   return skip.cause === 'fixme' ? 'fixme' : 'explicit';
 }
 
@@ -79,7 +81,7 @@ export function parseModifierCall(first: unknown, second: unknown): ModifierCall
 const RUNTIME_SKIP_APIS = {
   'test.skip': { cause: 'explicit', hint: 'to skip at collection, pass { skip: true } or a reason string as the test option' },
   'test.fixme': { cause: 'fixme', hint: 'to mark a test fixme at collection, register it with test.fixme(title, fn)' },
-} as const satisfies Record<string, { readonly cause: SelfSkipCause; readonly hint: string }>;
+} as const satisfies Record<string, { readonly cause: RuntimeSkipCause; readonly hint: string }>;
 
 /**
  * The skip reason of a `test.fixme` test: `fixme`, or `fixme: <reason>` when
