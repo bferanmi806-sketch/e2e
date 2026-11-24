@@ -63,7 +63,7 @@ test.todo('future');
       }
     }
 
-    expect(rows.map((todo) => todo.selected).sort()).toEqual([false, true]);
+    expect(rows.map((todo) => todo.selected).toSorted()).toEqual([false, true]);
     expect(rows.find((todo) => !todo.selected)).toMatchObject({
       status: 'skipped',
       selected: false,
