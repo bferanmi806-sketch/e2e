@@ -75,6 +75,7 @@ export function reportAttempt(overrides: Partial<ReportAttempt> = {}): ReportAtt
 }
 
 export function reportResult(overrides: ReportResultOverrides = {}): ReportResult {
+  const todo = overrides.skip?.cause === 'todo';
   return {
     id: 'result-1',
     testId: 'test-1',
@@ -89,8 +90,8 @@ export function reportResult(overrides: ReportResultOverrides = {}): ReportResul
     repeat: 0,
     tags: [],
     selected: true,
-    status: 'passed',
-    attempts: [reportAttempt()],
+    status: todo ? 'skipped' : 'passed',
+    attempts: todo ? [] : [reportAttempt()],
     ...overrides,
   };
 }

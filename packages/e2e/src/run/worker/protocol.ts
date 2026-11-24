@@ -8,7 +8,7 @@
  */
 
 import type { ResolvedTestOptions } from '../../collect/select.ts';
-import type { SkipInfo, TestIdentity } from '@e2e-dev/core/lib/run/records';
+import type { AttemptSkipInfo, TestIdentity } from '@e2e-dev/core/lib/run/records';
 import type { CliOverrides, PortAssignments, ResolvedTarget } from '@e2e-dev/core/lib/config/resolve';
 import type { AiTraceSnapshot } from '@e2e-dev/core/lib/internal/ai-trace';
 import type { DebugSnapshot } from '@e2e-dev/core/lib/internal/debug';
@@ -104,7 +104,7 @@ export interface InterruptMessage {
    * interrupt has a reason of its own (the run's failure limit); absent for a
    * plain interrupt.
    */
-  readonly skip?: SkipInfo;
+  readonly skip?: AttemptSkipInfo;
 }
 
 export interface ShutdownMessage {

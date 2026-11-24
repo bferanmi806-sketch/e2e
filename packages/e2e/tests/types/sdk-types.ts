@@ -739,6 +739,7 @@ test.fixme('not yet', async () => {}) satisfies ReturnType<typeof test>;
 test.todo('not yet') satisfies ReturnType<typeof test>;
 // @ts-expect-error todo takes a title only, with no body
 test.todo('not yet', async () => {});
+// The schema enforces TODO row invariants so reporter authors keep one compatible result interface.
 type ReportResult = Report['run']['results'][number];
 const todoResultSkip: NonNullable<ReportResult['skip']> = { cause: 'todo', reason: 'todo' };
 void todoResultSkip;
